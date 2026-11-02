@@ -17,6 +17,7 @@ const stages = [
   { name: 'build', args: ['scripts/build.mjs'] },
   { name: 'unit-tests', args: ['--test', ...tests.map(name => `tests/${name}`)] },
   { name: 'synthetic-replay', args: ['benchmarks/replay.mjs'] },
+  { name: 'prediction-evaluation', args: ['benchmarks/prediction.mjs', '--output-root', join(outDir, 'prediction-evaluation')] },
 ];
 const report = {
   runId,

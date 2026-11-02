@@ -13,6 +13,8 @@
     "test": "node --test",
     "prereplay": "npm run build",
     "replay": "node benchmarks/replay.mjs",
+    "preevaluate:prediction": "npm run build",
+    "evaluate:prediction": "node benchmarks/prediction.mjs",
     "pipeline": "node scripts/pipeline.mjs"
   },
   "devDependencies": { "typescript": "5.9.3" }

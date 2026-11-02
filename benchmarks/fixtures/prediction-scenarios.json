@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "dataKind": "synthetic",
+  "source": "Hand-authored deterministic algorithm scenarios. No real user or device data.",
+  "pageCatalog": ["home", "list", "detail", "settings", "account", "unknown"],
+  "scenarios": [
+    {
+      "name": "repeated-route",
+      "trainingSessions": [
+        ["home", "list", "detail", "list", "detail"],
+        ["home", "list", "detail", "list", "detail"]
+      ],
+      "evaluationSessions": [
+        ["home", "list", "detail", "list", "detail"],
+        ["home", "list", "detail", "list", "detail"]
+      ]
+    },
+    {
+      "name": "ambiguous-next-page",
+      "trainingSessions": [
+        ["home", "list", "detail", "list", "settings", "list", "detail", "list", "settings"]
+      ],
+      "evaluationSessions": [
+        ["list", "detail", "list", "settings", "list", "detail", "list", "settings"]
+      ]
+    },
+    {
+      "name": "route-change",
+      "trainingSessions": [
+        ["list", "detail", "list", "detail", "list", "detail", "list", "detail"],
+        ["list", "detail", "list", "detail", "list", "detail", "list", "detail"],
+        ["list", "detail", "list", "detail", "list", "detail", "list", "detail"],
+        ["list", "detail", "list", "detail", "list", "detail", "list", "detail"]
+      ],
+      "evaluationSessions": [
+        ["list", "settings", "list", "settings", "list", "settings", "list", "settings", "list", "settings", "list", "settings", "list", "settings", "list", "settings", "list", "settings", "list", "settings", "list", "settings", "list", "settings"]
+      ]
+    },
+    {
+      "name": "cold-start",
+      "trainingSessions": [],
+      "evaluationSessions": [
+        [], ["unknown"], ["home", "list", "detail"], ["home", "list", "settings"]
+      ]
+    }
+  ]
+}
