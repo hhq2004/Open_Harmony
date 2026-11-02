@@ -5,8 +5,10 @@ import { dirname, join, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 import { MarkovPredictor } from '../dist/prediction/markov.js';
+import { SessionPredictor } from '../dist/prediction/session.js';
 import { checkIdentifier, checkPositiveInteger } from '../dist/prediction/validation.js';
 import { evaluateSessions } from './replay.mjs';
+import { evaluateEventStream, validateEventSequence } from './events.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -20,11 +22,12 @@ class LastSuccessor {
     return pageId === undefined ? [] : [{ pageId, probability: 1 }];
   }
   getStats() { return { sourcePages: this.next.size, edges: this.next.size }; }
+  clear() { this.next.clear(); }
 }
 
 export function validateDataset(dataset) {
-  if (dataset?.schemaVersion !== 1 || !['synthetic', 'anonymized-real'].includes(dataset.dataKind)) {
-    throw new TypeError('Expected schemaVersion 1 and an explicit dataKind.');
+  if (![1, 2].includes(dataset?.schemaVersion) || !['synthetic', 'anonymized-real'].includes(dataset.dataKind)) {
+    throw new TypeError('Expected schemaVersion 1 or 2 and an explicit dataKind.');
   }
   if (typeof dataset.source !== 'string' || dataset.source.trim() === '') {
     throw new TypeError('source must describe data provenance.');
@@ -34,6 +37,15 @@ export function validateDataset(dataset) {
   }
   for (const page of dataset.pageCatalog) checkIdentifier(page);
   const pages = new Set(dataset.pageCatalog);
+  if (dataset.schemaVersion === 2) {
+    if (dataset.sessionOptions !== undefined && (dataset.sessionOptions === null
+        || typeof dataset.sessionOptions !== 'object' || Array.isArray(dataset.sessionOptions)
+        || Object.keys(dataset.sessionOptions).some(key => !['maxSessions', 'maxGapMs'].includes(key)))) {
+      throw new TypeError('sessionOptions supports only maxSessions and maxGapMs.');
+    }
+    // Reuse the real adapter's configuration validation without observing any events.
+    new SessionPredictor(new MarkovPredictor(), { ...dataset.sessionOptions, allowedPages: dataset.pageCatalog });
+  }
   if (!Array.isArray(dataset.scenarios) || dataset.scenarios.length === 0) {
     throw new TypeError('At least one scenario is required.');
   }
@@ -42,6 +54,11 @@ export function validateDataset(dataset) {
     checkIdentifier(scenario?.name);
     if (names.has(scenario.name)) throw new TypeError('Scenario names must be unique.');
     names.add(scenario.name);
+    if (dataset.schemaVersion === 2) {
+      const lastOrder = validateEventSequence(scenario.trainingEvents, dataset.pageCatalog);
+      validateEventSequence(scenario.evaluationEvents, dataset.pageCatalog, lastOrder);
+      continue;
+    }
     for (const sessions of [scenario.trainingSessions, scenario.evaluationSessions]) {
       if (!Array.isArray(sessions)) throw new TypeError('Session collections must be arrays.');
       for (const path of sessions) {
@@ -62,8 +79,10 @@ export function comparePredictors(dataset, { mode = 'online', topK = 1, windowSi
   checkPositiveInteger(topK, 'topK');
   checkPositiveInteger(windowSize, 'windowSize');
   const scenarios = dataset.scenarios.map(scenario => {
-    const transitionCount = [...scenario.trainingSessions, ...scenario.evaluationSessions]
-      .reduce((sum, path) => sum + Math.max(0, path.length - 1), 0);
+    const transitionCount = dataset.schemaVersion === 2
+      ? [...scenario.trainingEvents, ...scenario.evaluationEvents].filter(event => event.kind === 'visit').length
+      : [...scenario.trainingSessions, ...scenario.evaluationSessions]
+        .reduce((sum, path) => sum + Math.max(0, path.length - 1), 0);
     const definitions = [
       { name: 'full-history', options: { windowSize: Math.max(1, transitionCount) } },
       { name: 'recent-window', options: { windowSize } },
@@ -72,6 +91,15 @@ export function comparePredictors(dataset, { mode = 'online', topK = 1, windowSi
     ];
     const strategies = definitions.map(definition => {
       const model = definition.options === null ? new LastSuccessor() : new MarkovPredictor(definition.options);
+      if (dataset.schemaVersion === 2) {
+        return {
+          name: definition.name, options: definition.options,
+          ...evaluateEventStream(model, scenario.evaluationEvents, {
+            trainingEvents: scenario.trainingEvents, onlineLearning: mode === 'online',
+            sessionOptions: { ...dataset.sessionOptions, allowedPages: dataset.pageCatalog, limit: topK },
+          }),
+        };
+      }
       for (const path of scenario.trainingSessions) {
         for (let index = 1; index < path.length; index += 1) model.observe(path[index - 1], path[index]);
       }
@@ -108,7 +136,9 @@ export function comparePredictors(dataset, { mode = 'online', topK = 1, windowSi
     return { name: scenario.name, strategies };
   });
   return {
-    schemaVersion: 1, scope: 'host-offline-prediction', dataKind: dataset.dataKind, source: dataset.source,
+    schemaVersion: 2, inputFormat: dataset.schemaVersion === 2 ? 'event-stream' : 'session-paths',
+    scope: 'host-offline-prediction', dataKind: dataset.dataKind, source: dataset.source,
+    sessionOptions: dataset.schemaVersion === 2 ? dataset.sessionOptions ?? {} : null,
     evaluationMode: mode === 'online' ? 'predict-then-observe' : 'frozen-training-only', topK, windowSize,
     openHarmonyPerformanceMeasured: false,
     timingCaveat: 'Unwarmed host operations in a shared process; not UI latency or a stable microbenchmark.',
@@ -144,7 +174,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const sourceFiles = [
       'src/contracts.ts', 'src/prediction/markov.ts', 'src/prediction/session.ts',
       'src/prediction/validation.ts', 'src/prediction/index.ts', 'benchmarks/replay.mjs',
-      'benchmarks/prediction.mjs', 'package.json', 'package-lock.json', 'tsconfig.json',
+      'benchmarks/prediction.mjs', 'benchmarks/events.mjs', 'package.json', 'package-lock.json', 'tsconfig.json',
     ];
     const sha256 = buffer => createHash('sha256').update(buffer).digest('hex');
     let git = { baseCommit: null, dirty: null };

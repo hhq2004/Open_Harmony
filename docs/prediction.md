@@ -6,7 +6,7 @@
 
 | 要求依据 | B 的实现及验收证据 | 上下游依赖 |
 | --- | --- | --- |
-| §3.1 预测输入、结果与实际下一跳可对应 | `MarkovPredictor`、`evaluateSessions` 和逐步 `trace`；手算与在线时序测试 | A 提供真实、脱敏、按顺序的访问事件 |
+| §3.1 预测输入、结果与实际下一跳可对应 | `MarkovPredictor`、路径/事件回放和逐步 `trace`；手算与在线时序测试 | A 提供真实、脱敏、按顺序的访问事件 |
 | §2、§3.3 预测收益与资源浪费的权衡 | 有限滑动窗口、可配置样本/频率门槛；窗口计数独立参照测试、未使用候选计数 | C、D 决定空闲执行、任务数与资源预算 |
 | §3.3 冷启动、快速切换、采集关闭 | 无历史返回空候选，会话隔离、乱序处理、关闭/重启/清除测试 | A 控制真实采集开关及会话生命周期 |
 | §4、§6 路线比较、避免未来数据泄漏 | 四种策略、在线/冻结两种评测、固定输入、逐跳原始结果及 SHA-256 | E 与 B 在真实路径上复测；不得挑选成功样本 |
@@ -24,6 +24,7 @@ B 不调用平台采集、磁盘、网络、调度、视图或设备 API。C 负
 | `src/prediction/validation.ts` | 标识长度及正整数校验 |
 | `tests/prediction.test.mjs`、`tests/session.test.mjs` | 模型、会话及异常边界验证 |
 | `benchmarks/replay.mjs` | 共用先预测后学习评测函数 |
+| `benchmarks/events.mjs`、`tests/events.test.mjs` | 经过真实会话接入器的事件回放、生命周期/投递时序验证 |
 | `benchmarks/prediction.mjs` | 策略比较、数据格式校验、证据输出 |
 | `tests/replay.test.mjs`、`tests/prediction-evaluation.test.mjs` | 分母、冻结模式、逐跳记录和在线接入一致性验证 |
 
@@ -45,6 +46,7 @@ classDiagram
     class SessionPredictor {
         setEnabled(enabled)
         accept(event)
+        acceptDetailed(event)
         endSession(sessionId)
         clear()
         getStats()
@@ -71,7 +73,7 @@ classDiagram
 
 ## 会话接入与隐私
 
-`SessionPredictor` 消费 A 已脱敏的 `VisitEvent`，不从页面自动采集。页面必须属于构造时复制的 `allowedPages` 目录；A 应将动态商品页映射为固定路由别名，如 `detail`，不得将 URL 查询参数、账号、内容或设备标识放进页面目录。会话 ID 应为临时匿名值，时钟为同会话单调毫秒数；标识非空且最多 128 个 UTF-16 代码单元。标识校验只是边界检查，不能自动证明脱敏。依据：`src/prediction/validation.ts:4#checkIdentifier`、`src/prediction/session.ts:26#constructor`。
+`SessionPredictor` 消费 A 已脱敏的 `VisitEvent`，不从页面自动采集。页面必须属于构造时复制的 `allowedPages` 目录；A 应将动态商品页映射为固定路由别名，如 `detail`，不得将 URL 查询参数、账号、内容或设备标识放进页面目录。会话 ID 应为临时匿名值，时钟为同会话单调毫秒数；标识非空且最多 128 个 UTF-16 代码单元。标识校验只是边界检查，不能自动证明脱敏。依据：`src/prediction/validation.ts:4#checkIdentifier`、`src/prediction/session.ts:39#constructor`。
 
 | `SessionOptions` | 默认值 | 行为 |
 | --- | --- | --- |
@@ -89,7 +91,9 @@ classDiagram
 - 连续相同页面会学习自转移；同一回调重复投递与真实重新访问无法由当前契约区分，A 应只在确定的页面访问边界投递一次。
 - `endSession(id)` 只删除该游标，既有转移统计保留。`clear()` 是逻辑删除，不承诺运行时内存的安全擦除，也不删除 A/E 另存的日志或评测文件。
 
-对应实现：`src/prediction/session.ts:43#setEnabled`、`src/prediction/session.ts:50#accept`、`src/prediction/session.ts:80#endSession`、`src/prediction/session.ts:86#clear`。
+对应实现：`src/prediction/session.ts:56#setEnabled`、`src/prediction/session.ts:63#accept`、`src/prediction/session.ts:111#endSession`、`src/prediction/session.ts:117#clear`。
+
+目录过滤在前 K 截取之前完成；即使预训练模型包含不再可用的页面，也不会遮住后面的合法候选，条件频率仍保留原分母。接入器请求模型的完整排名再筛选，所以调用方应提供有容量限制的模型，本项目默认模型的不同边数不超过窗口 W。
 
 关闭采集或删除历史时，A 还须通知 C 取消已有任务、通知 D 释放准备资源，并处理晚到资源。B 的开关只控制 B 的状态。当前没有持久化、用户画像或自动上传；外部保存的评测输入和结果仍应脱敏、受访问控制并有删除策略。
 
@@ -115,6 +119,18 @@ prediction.clear();
 
 `accept` 先学习刚刚结束的上一页→当前页，再预测当前页的下一跳。预测只使用到当前访问为止的历史，没有等待或访问未来事件。没有会话信息时，可直接用 `PathPredictor.observe/predict`，但此时由调用者自己保证相邻性、开关与清除。
 
+`acceptDetailed(event)` 返回 `SessionDecision`，与 `accept(event)` 使用同一实现。一个事件选择其中一个方法调用一次：
+
+| 字段 | 语义 |
+| --- | --- |
+| `status` | `accepted`、`disabled` 或 `out-of-order`；迟到事件不等于无历史时的正常空候选 |
+| `boundary` | 正常访问为 `first-visit`、`gap` 或 `consecutive`；被忽略的访问为 `null` |
+| `transition` | 合法同会话相邻转移的 `fromPage/toPage`，否则为 `null` |
+| `evictedSessionId` | 本次接收淘汰的临时会话 ID；没有淘汰则为 `null` |
+| `candidates` | 当前页的下一跳候选；不包含调度任务或视图资源 |
+
+详细接口依据：`src/prediction/session.ts:17#SessionDecision`、`src/prediction/session.ts:68#acceptDetailed`。该接口使 A、E 可沿用 B 的边界判断，不需要另写一套会话状态机。
+
 ```mermaid
 sequenceDiagram
     participant Adapter as ApplicationAdapter（A 待实现类）
@@ -127,9 +143,9 @@ sequenceDiagram
         opt 有同会话有效上一页
             Session->>Model: observe(previous, current)
         end
-        Session->>Model: predict(current, limit)
+        Session->>Model: predict(current, MAX_SAFE_INTEGER)
         Model-->>Session: candidates or []
-        Session-->>Adapter: 目录筛选后的候选
+        Session-->>Adapter: 目录筛选后截取 limit 个候选
     end
 ```
 
@@ -143,6 +159,8 @@ npm run evaluate:prediction
 npm run build
 node benchmarks/prediction.mjs --mode frozen --top-k 2
 node benchmarks/prediction.mjs --input benchmarks/fixtures/prediction-scenarios.json --window-size 64 --mode online
+node benchmarks/prediction.mjs --input benchmarks/fixtures/prediction-events.json --mode online
+node benchmarks/prediction.mjs --input benchmarks/fixtures/prediction-events.json --mode frozen --top-k 2
 ```
 
 主机侧完整 pipeline 已加入 B 的策略对照阶段。独立命令的报告位于 `artifacts/prediction/<run>/report.json`；pipeline 报告位于当次 `artifacts/pipeline/<run>/prediction-evaluation/<run>/report.json`，连同原样 `input.json` 被现有 Actions 归档。CLI 非法输入返回非零退出码，不生成成功报告。要评测自己的数据，将 `--input` 参数换成脱敏文件的实际路径，其格式如下。
@@ -163,15 +181,48 @@ node benchmarks/prediction.mjs --input benchmarks/fixtures/prediction-scenarios.
 }
 ```
 
-`dataKind` 只接受 `synthetic` 或 `anonymized-real`，后者仅是提供者声明，不是工具认证。单个空会话、单页会话合法但没有预测机会；整个场景集合不能为空、场景名须唯一、路径须只含目录内页面。数据校验在模型训练之前执行。实现：`benchmarks/prediction.mjs:25#validateDataset`。
+`dataKind` 只接受 `synthetic` 或 `anonymized-real`，后者仅是提供者声明，不是工具认证。单个空会话、单页会话合法但没有预测机会；整个场景集合不能为空、场景名须唯一、路径须只含目录内页面。数据校验在模型训练之前执行。实现：`benchmarks/prediction.mjs:28#validateDataset`。
 
-每个场景/策略都新建模型，训练只在各自会话内连接页面，评测不连接会话边界。在线模式在每次机会先预测再学习真实下一跳；冻结模式只使用训练历史，评测中不更新模型。完整历史策略的容量按该场景转移总数取足，仅为不淘汰历史，不使用评测页面标签设规则或门槛。实现：`benchmarks/replay.mjs:8#evaluateSessions`、`benchmarks/prediction.mjs:59#comparePredictors`。
+每个场景/策略都新建模型，训练只在各自会话内连接页面，评测不连接会话边界。在线路径模式在每次机会先预测再学习真实下一跳；冻结模式不学习评测转移。完整历史策略的容量按该场景转移数的上界取足，仅为不淘汰历史，不使用评测页面标签设规则或门槛。实现：`benchmarks/replay.mjs:8#evaluateSessions`、`benchmarks/prediction.mjs:76#comparePredictors`。
 
-此离线路径格式没有事件时间戳，在线评测要求会话互不重叠且按时间排列。交错的多会话数据不能仅按会话 ID 分组后在线回放，否则可能提前学到其他会话的未来记录；应另按事件时间顺序回放（当前脚本不支持），或使用冻结模式并保证训练截止时间早于全部评测事件。实时 `SessionPredictor` 接口支持按实际到达顺序投递交错会话，此处限制属于离线文件格式。
+此第一版路径格式没有事件时间戳，也不执行会话超时、淘汰和开关逻辑。输入需已按这些边界分段，会话互不重叠且按时间排列。包含交错会话、超时或开关的数据使用下面的第二版事件格式，不能先按会话 ID 分组再冒充实时评测。
+
+### 第二版事件格式
+
+已有可执行样例为 `benchmarks/fixtures/prediction-events.json`。对应的最小格式：
+
+```json
+{
+  "schemaVersion": 2,
+  "dataKind": "synthetic",
+  "source": "示例；实际数据需说明来源、授权和训练截止时间",
+  "pageCatalog": ["home", "list"],
+  "sessionOptions": { "maxSessions": 32, "maxGapMs": 1800000 },
+  "scenarios": [{
+    "name": "event-example",
+    "trainingEvents": [],
+    "evaluationEvents": [
+      { "order": 1, "kind": "set-enabled", "enabled": true },
+      { "order": 2, "kind": "visit", "visit": { "sessionId": "temporary", "pageId": "home", "monotonicMs": 0 } },
+      { "order": 3, "kind": "visit", "visit": { "sessionId": "temporary", "pageId": "list", "monotonicMs": 10 } }
+    ]
+  }]
+}
+```
+
+`order` 是实际投递顺序的全局正安全整数，在同一场景的训练及评测数组中必须严格递增；不能按各会话的 `monotonicMs` 重新排序。会话内时间允许迟到投递，按实时接入器规则忽略。四种事件分别是：`visit`、`set-enabled`、`end-session`（带 sessionId）和 `clear`。事件及访问对象不接受额外字段，避免把账号、URL 内容或其他原始字段误带进标准导出；这仍不自动证明字段值已脱敏。实现：`benchmarks/events.mjs:13#validateEventSequence`。
+
+回放默认关闭；需显式启用。训练事件先通过同一 `SessionPredictor`，在训练/评测切分处清除会话游标，保留模型与开关状态，避免切分边界串联。评测继续经过真实接入器，核对的是上一次实际输出的候选，当前事件不会重新生成一个“过去的预测”。在线模式学习已发生转移；冻结模式停止学习评测转移，但仍执行关闭、会话结束与显式历史清除。实现：`benchmarks/events.mjs:52#evaluateEventStream`。
+
+超时、首访、被淘汰后重新出现的会话不构成相邻机会；关闭和迟到事件也不计入分母。报告的 `visitCounts` 单独列出这些访问，不能只选择其中命中的访问。事件 trace 保存原事件、详细决策和上一轮候选的实际命中结果。训练/评测数据仍须由提供者按真实时间切分，`order` 校验无法认证其来源。
+
+合成 fixture 故意含关闭期投递，用于验证忽略行为；真实应用在关闭采集后应停止记录行为，而不是持续采集后交给 B 过滤。
+
+报告本身现为第二版，`inputFormat` 区分 `session-paths` 与 `event-stream`，E 读取 trace 时应先检查此字段。第一版输入文件继续受支持。事件模式结果归档在本次 pipeline 的 `prediction-event-evaluation/` 子目录，不覆盖此前记录。
 
 | 输出 | 定义 |
 | --- | --- |
-| `opportunities` | 各评测会话的 `max(页面数−1, 0)` 之和 |
+| `opportunities` | 路径模式为各会话 `max(页面数−1, 0)` 之和；事件模式为接入器认可的相邻转移数 |
 | `predictionsMade` | 候选非空的机会数 |
 | `hits` | 真实下一页位于前 K 候选的机会数 |
 | `coverage` | predictionsMade / opportunities |
@@ -181,7 +232,9 @@ node benchmarks/prediction.mjs --input benchmarks/fixtures/prediction-scenarios.
 | `candidatesIssued` | 所有机会输出候选数之和 |
 | `unusedCandidates` | candidatesIssued − hits；只是未用候选数，不是设备浪费内存/网络量 |
 
-分母为 0 的比例返回 `null`。前 K 模式即使命中，也可能有 K−1 个候选未用，不能把前 K 命中直接当作省资源。`trace` 保存会话/步序号、源页面、预测候选、真实下一页和命中标记；每个策略保存初末结构计数与逐操作主机计时。报告还保存输入与源码 SHA-256、Git 基线和 dirty 状态、Node/平台/架构及参数。工作区未提交时不能把 Git 基线当作实现版本，须同时依据源码校验值；独立报告不会自动进入 Git。
+事件模式另外给出 `totalCandidatesIssued`（所有评测访问实际发出的候选总数）、`discardedCandidates`（因超时、关闭、结束、清除或淘汰而失效）、`unresolvedCandidates`（输入结束时尚未等到下一次有效访问）。三者与已评分候选满足：`totalCandidatesIssued = candidatesIssued + discardedCandidates + unresolvedCandidates`。它们是预测记录计数，不能叫作实际资源回收量。
+
+分母为 0 的比例返回 `null`。前 K 模式即使命中，也可能有 K−1 个候选未用，不能把前 K 命中直接当作省资源。每个策略保存初末结构计数与逐操作主机计时。事件模式只记录实际执行的评测预测和学习计时，不含训练、不含全部会话逻辑或 UI 耗时；冻结模式仍可能因 clear 事件改变最终模型。报告还保存输入与源码 SHA-256、Git 基线和 dirty 状态、Node/平台/架构及参数。工作区未提交时不能把 Git 基线当作实现版本，须同时依据源码校验值；独立报告不会自动进入 Git。
 
 计时是未预热的共享进程操作耗时，包含主机噪声，不是稳定微基准或点击加速结果；结构计数不是实测内存。所有现有 fixture 都是合成数据，`openHarmonyPerformanceMeasured` 固定为 `false`。
 
@@ -189,7 +242,9 @@ node benchmarks/prediction.mjs --input benchmarks/fixtures/prediction-scenarios.
 
 2026-11-02，本地完整 pipeline 通过，39 项测试全通过；其中窗口模型以独立滚动列表参照比较 2,000 次更新，并覆盖唯一页面持续增长、清空重训、窗口满时非法输入、会话交错、关闭重启、乱序/等时事件、游标淘汰、时间断点、目录拒绝、数据删除、冻结评测及在线接入与回放一致性。逐次结果见本地 `artifacts/pipeline/2026-11-02T03-17-40-396Z-9968d1c7/`；本记录仅对应本次主机验证。
 
-文中 TypeScript 等受支持的源码引用使用课程 `oh_verify.py` 按精确行号（window=0）核验；该工具不扫描 `.mjs` 扩展名，本文的三处 `.mjs` 引用另按文件、精确行号及符号核对。工具忽略的 `report.json`、`input.json` 是动态生成的产物名，不是源码引用。核验记录位于本地 `artifacts/verification/prediction/`。
+后续补充：候选目录先筛选再截取的回归测试、详细决策测试，以及事件回放的交错、超时、开关、清除、淘汰和冻结模式测试已加入。新增 200 次动作的直接调用与回放一致性对照，并核对候选计数守恒、冷启动防泄漏和前 K 候选未用计数。当前共 53 项测试；首轮 39 项记录作为历史保留，最新完整 pipeline 见本次运行产物。
+
+文中 TypeScript 等受支持的源码引用使用课程 `oh_verify.py` 按精确行号（window=0）核验；该工具不扫描 `.mjs` 扩展名，本文的 `.mjs` 引用另按文件、精确行号及符号核对。工具忽略的 `report.json`、`input.json` 是动态生成的产物名，不是源码引用。核验记录位于本地 `artifacts/verification/prediction/`。
 
 当前默认合成对照为 W=16、K=1、在线更新；门槛策略另取最小样本 3、频率 0.6，这些是预先设定的实验参数，与产品默认 W=2048 分开。
 
@@ -201,6 +256,21 @@ node benchmarks/prediction.mjs --input benchmarks/fixtures/prediction-scenarios.
 | 冷启动 | 1/4 | 1/4 | 0/4 | 1/4 |
 
 这些观察支持保留窗口与门槛为可配置项，同时显示严格门槛可能降低全体机会命中率。最近后继在本次路径突变里适应更快，在交替歧义路径里更差；没有一种策略在这些例子中全面占优。当前交付选有界统计模型作为可解释、可直接接入的默认实现，不据此宣称真实用户效果最好，也未据合成数据调优设备参数。
+
+## A、C、D、E 的交接与验收入口
+
+B 可独立交付的入口和生命周期已实现；下表是其他成员按现有契约接入时需满足的条件，不代表对应平台代码已经完成。
+
+| 对接方 | 可直接使用的交付 | 对方接入义务及验收 |
+| --- | --- | --- |
+| A 应用/采集 | `src/prediction/index.ts`、SessionOptions、VisitEvent、SessionDecision | 提供固定页面目录、匿名会话及会话内单调时钟；按实际投递顺序调用一个接入方法一次；明确页面访问边界；默认关闭并接上真实开关 |
+| A 与 C 调度 | accepted 决策的 candidates、transition、boundary、evictedSessionId | 先核对上一轮实际访问，再创建新任务；忽略 out-of-order；超时/淘汰/会话结束时清理对应旧任务；任务 ID 和优先级由应用与调度确定，不把概率直接当优先级 |
+| A 与 D 资源 | 由应用维护的候选/任务映射 | 关闭或清除时协调取消与资源释放；预测器不持有视图，清除预测历史不能代替释放视图或处理晚到资源 |
+| E 评测 | 两版输入、四策略比较、trace、原始输入/源码校验值及自动检查 | 按 inputFormat 解析报告；真实数据应带来源、授权、训练截止时间和实际事件顺序；使用事件模式核对生命周期，不用路径模式推断端到端收益 |
+
+共同接入时，先运行 `npm run pipeline`；再用自己的脱敏事件文件运行比较命令。`tests/session.test.mjs` 与 `tests/events.test.mjs` 给出可执行行为范例。若上层捕获异常后继续导航，应同步结束对应会话和旧任务，避免把丢失事件前后的页面连接。
+
+无需等待其他模块即可完成的 B 实现、回归测试、事件数据接入和文档已提供；没有用假的采集器、调度器或预渲染器代替其他成员的模块。接下来应保留以下真实依赖，不预先写通过结论。
 
 ## 团队后续验收
 

@@ -137,3 +137,25 @@ test('a reused model cannot emit routes outside the application catalog', () => 
   session.setEnabled(true);
   assert.deepEqual(session.accept(visit('s', 'A', 0)), []);
 });
+
+test('catalog filtering precedes top K and preserves the full model denominator', () => {
+  const { model, session } = setup();
+  model.train(['A', 'removed', 'A', 'removed', 'A', 'B']);
+  session.setEnabled(true);
+  assert.deepEqual(session.accept(visit('s', 'A', 0)), [{ pageId: 'B', probability: 1 / 3 }]);
+});
+
+test('detailed decisions distinguish disabled, first visit, gap, ordered edge and late delivery', () => {
+  const { session } = setup({ maxGapMs: 10, maxSessions: 1 });
+  assert.equal(session.acceptDetailed(visit('s', 'A', 0)).status, 'disabled');
+  session.setEnabled(true);
+  assert.equal(session.acceptDetailed(visit('s', 'A', 0)).boundary, 'first-visit');
+  const edge = session.acceptDetailed(visit('s', 'B', 10));
+  assert.deepEqual(edge.transition, { fromPage: 'A', toPage: 'B' });
+  assert.equal(edge.boundary, 'consecutive');
+  assert.equal(session.acceptDetailed(visit('s', 'C', 9)).status, 'out-of-order');
+  const gap = session.acceptDetailed(visit('s', 'A', 21));
+  assert.equal(gap.boundary, 'gap');
+  assert.equal(gap.transition, null);
+  assert.equal(session.acceptDetailed(visit('other', 'B', 0)).evictedSessionId, 's');
+});

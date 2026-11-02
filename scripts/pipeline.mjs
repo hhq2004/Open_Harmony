@@ -18,6 +18,7 @@ const stages = [
   { name: 'unit-tests', args: ['--test', ...tests.map(name => `tests/${name}`)] },
   { name: 'synthetic-replay', args: ['benchmarks/replay.mjs'] },
   { name: 'prediction-evaluation', args: ['benchmarks/prediction.mjs', '--output-root', join(outDir, 'prediction-evaluation')] },
+  { name: 'prediction-event-evaluation', args: ['benchmarks/prediction.mjs', '--input', 'benchmarks/fixtures/prediction-events.json', '--output-root', join(outDir, 'prediction-event-evaluation')] },
 ];
 const report = {
   runId,

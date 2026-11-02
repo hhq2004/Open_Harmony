@@ -55,7 +55,7 @@ test('identical fixtures yield identical decisions independently of timing and p
 
 test('dataset schema requires provenance, known routes and isolated session arrays', () => {
   const cases = [
-    value => { value.schemaVersion = 2; }, value => { value.source = ''; },
+    value => { value.schemaVersion = 3; }, value => { value.source = ''; },
     value => { value.dataKind = 'real-proven'; }, value => { value.pageCatalog = []; },
     value => { value.scenarios = []; }, value => { value.scenarios.push(value.scenarios[0]); },
     value => { value.scenarios[0].evaluationSessions = [['unknown']]; },

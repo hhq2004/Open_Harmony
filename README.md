@@ -9,7 +9,7 @@
 | 内容 | 状态 |
 | --- | --- |
 | 本地主机侧 pipeline | 已实现环境检查、类型检查、编译、单元测试、合成路径回放和报告保存 |
-| 路径预测 | 已实现有界一阶模型、可配置预测门槛及默认关闭的会话接入器；见 [B 模块说明](docs/prediction.md) |
+| 路径预测 | 已实现有界一阶模型、可配置门槛、会话接入与详细决策、带生命周期事件的回放；见 [B 模块说明](docs/prediction.md) |
 | 自动化测试 | 覆盖预测、窗口淘汰、会话隔离、开关/清除和离线评测；新增模块需补充自己的测试 |
 | GitHub Actions | 已配置 Windows/Ubuntu 检查；具体运行结果以仓库 Actions 页面为准 |
 | 采集、调度、预渲染和测量 | 已声明接入接口，目标平台实现待开发 |
@@ -33,7 +33,7 @@ npm run pipeline
 pipeline 按以下顺序执行：
 
 ```text
-环境检查 → 严格类型检查 → 干净编译 → 单元测试 → 合成路径回放 → 预测策略对照 → 保存报告
+环境检查 → 严格类型检查 → 干净编译 → 单元测试 → 合成路径回放 → 路径/事件策略对照 → 保存报告
 ```
 
 任一步失败即停止后续步骤，返回非零退出码。编译只清理本项目生成的 `dist/`，防止旧产物误通过；运行记录保留在独立的 `artifacts/pipeline/<run>/` 目录，包含 `report.json` 和各阶段的标准输出、错误输出。
@@ -76,6 +76,8 @@ A 组织应用与模块集成，E 维护自动检查并组织最终验收。每�
 
 A 可通过 `SessionPredictor.accept(VisitEvent)` 接入已脱敏事件，由 B 接入器隔离会话并调用预测模型，避免上游再调用 `observe` 造成重复学习。接入器默认关闭，关闭时清除会话游标并停止学习/预测，`clear()` 清除游标与模型。A 的真实采集开关、原始数据清除及日志脱敏仍需在平台实现中验证，详见 [接入说明](docs/prediction.md)。
 
+需要区分关闭、迟到事件、超时或淘汰边界时，使用 `acceptDetailed()` 获取 `SessionDecision`；其候选与 `accept()` 来自同一执行路径。不要为同一次访问先后调用两者，以免重复学习。共享 `src/contracts.ts` 接口未改动，B 的跨模块交接步骤见模块说明末尾。
+
 调度侧负责取消任务，资源侧负责释放已经创建及取消后晚到的资源。`PreparedView.dispose()` 应可重复调用，`take()` 成功后由调用者持有并释放资源。具体错误传播、任务状态和并发边界需在接入时共同确定并补充集成测试。
 
 ## 鸿蒙环境与开发范围
@@ -97,6 +99,8 @@ A 牵头确定目标系统、应用工程及设备或模拟器，C、D 验证相
 `benchmarks/fixtures/prediction-scenarios.json` 另提供重复路径、歧义路径、路径变化和冷启动四组合成对照。运行 `npm run evaluate:prediction` 会比较完整历史、近期窗口、带门槛窗口和最近一次后继策略；独立结果保存在 `artifacts/prediction/<run>/`。编译后运行 `node benchmarks/prediction.mjs --mode frozen --top-k 2` 可冻结训练模型并检查前两个候选。自有数据格式和指标定义见 B 模块说明，不根据这些合成样本确定最终设备参数。
 
 完整 pipeline 的对照结果保存在本次 `artifacts/pipeline/<run>/prediction-evaluation/` 内，随现有 GitHub Actions 产物归档；其中的结构计数与主机耗时不能代替设备内存及点击响应测量。
+
+`benchmarks/fixtures/prediction-events.json` 使用第二版输入格式，包含交错会话、全局投递顺序、会话内时间和开关/结束/清除事件，直接经过真实的 B 会话接入器。编译后运行 `node benchmarks/prediction.mjs --input benchmarks/fixtures/prediction-events.json`；完整 pipeline 会将该对照结果保存在 `prediction-event-evaluation/` 子目录。此前的纯路径格式继续用于算法检查；含超时、开关或交错会话的输入应使用事件格式。
 
 ## GitHub 自动检查
 
