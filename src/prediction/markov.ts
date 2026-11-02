@@ -1,5 +1,6 @@
 import type { PathPredictor, Prediction } from '../contracts.js';
 import { checkIdentifier, checkPositiveInteger } from './validation.js';
+import { resolveModelConfig } from './config.js';
 
 export interface MarkovOptions {
   /** Maximum number of recent transitions retained across all sessions. */
@@ -30,15 +31,10 @@ export class MarkovPredictor implements PathPredictor {
   readonly minProbability: number;
 
   constructor(options: MarkovOptions = {}) {
-    this.windowSize = options.windowSize ?? 2048;
-    this.minSamples = options.minSamples ?? 1;
-    this.minProbability = options.minProbability ?? 0;
-    checkPositiveInteger(this.windowSize, 'windowSize');
-    checkPositiveInteger(this.minSamples, 'minSamples');
-    if (this.minSamples > this.windowSize) throw new RangeError('minSamples cannot exceed windowSize.');
-    if (!Number.isFinite(this.minProbability) || this.minProbability < 0 || this.minProbability > 1) {
-      throw new RangeError('minProbability must be between zero and one.');
-    }
+    const config = resolveModelConfig(options);
+    this.windowSize = config.windowSize;
+    this.minSamples = config.minSamples;
+    this.minProbability = config.minProbability;
   }
 
   observe(fromPage: string, toPage: string): void {

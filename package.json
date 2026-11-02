@@ -15,6 +15,8 @@
     "replay": "node benchmarks/replay.mjs",
     "preevaluate:prediction": "npm run build",
     "evaluate:prediction": "node benchmarks/prediction.mjs",
+    "presweep:prediction": "npm run build",
+    "sweep:prediction": "node benchmarks/sweep.mjs",
     "pipeline": "node scripts/pipeline.mjs"
   },
   "devDependencies": { "typescript": "5.9.3" }

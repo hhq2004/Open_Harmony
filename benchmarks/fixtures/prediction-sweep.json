@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "inputFormat": "event-stream",
+  "dataKind": "synthetic",
+  "source": "Hand-authored three-way temporal split for exercising parameter selection; not production tuning data.",
+  "pageCatalog": ["home", "list", "detail", "settings"],
+  "scenarios": [{
+    "name": "navigation",
+    "trainingEvents": [
+      { "order": 1, "kind": "set-enabled", "enabled": true },
+      { "order": 2, "kind": "visit", "visit": { "sessionId": "train", "pageId": "home", "monotonicMs": 0 } },
+      { "order": 3, "kind": "visit", "visit": { "sessionId": "train", "pageId": "list", "monotonicMs": 1 } },
+      { "order": 4, "kind": "visit", "visit": { "sessionId": "train", "pageId": "detail", "monotonicMs": 2 } },
+      { "order": 5, "kind": "visit", "visit": { "sessionId": "train", "pageId": "list", "monotonicMs": 3 } },
+      { "order": 6, "kind": "visit", "visit": { "sessionId": "train", "pageId": "settings", "monotonicMs": 4 } }
+    ],
+    "validationEvents": [
+      { "order": 7, "kind": "visit", "visit": { "sessionId": "validation", "pageId": "home", "monotonicMs": 0 } },
+      { "order": 8, "kind": "visit", "visit": { "sessionId": "validation", "pageId": "list", "monotonicMs": 1 } },
+      { "order": 9, "kind": "visit", "visit": { "sessionId": "validation", "pageId": "detail", "monotonicMs": 2 } },
+      { "order": 10, "kind": "visit", "visit": { "sessionId": "validation", "pageId": "list", "monotonicMs": 3 } },
+      { "order": 11, "kind": "visit", "visit": { "sessionId": "validation", "pageId": "detail", "monotonicMs": 4 } }
+    ],
+    "testEvents": [
+      { "order": 12, "kind": "visit", "visit": { "sessionId": "test", "pageId": "home", "monotonicMs": 0 } },
+      { "order": 13, "kind": "visit", "visit": { "sessionId": "test", "pageId": "list", "monotonicMs": 1 } },
+      { "order": 14, "kind": "visit", "visit": { "sessionId": "test", "pageId": "settings", "monotonicMs": 2 } },
+      { "order": 15, "kind": "visit", "visit": { "sessionId": "test", "pageId": "list", "monotonicMs": 3 } }
+    ]
+  }]
+}

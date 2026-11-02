@@ -170,7 +170,7 @@ test('schema 2 compares all strategies and accounts for every issued candidate',
   const result = comparePredictors(fixture);
   assert.equal(result.inputFormat, 'event-stream');
   for (const scenario of result.scenarios) {
-    assert.equal(scenario.strategies.length, 4);
+    assert.equal(scenario.strategies.length, 5);
     for (const strategy of scenario.strategies) {
       assert.equal(strategy.totalCandidatesIssued, strategy.candidatesIssued + strategy.discardedCandidates + strategy.unresolvedCandidates);
       assert.equal(strategy.trace.filter(item => item.outcome !== null).length, strategy.metrics.opportunities);

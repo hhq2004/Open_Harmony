@@ -1,5 +1,6 @@
 import type { PathPredictor, Prediction, VisitEvent } from '../contracts.js';
-import { checkIdentifier, checkPositiveInteger } from './validation.js';
+import { checkIdentifier } from './validation.js';
+import { resolveSessionPolicy } from './config.js';
 
 export interface SessionOptions {
   /** Fixed route aliases supplied by the application. Never include query parameters. */
@@ -42,14 +43,10 @@ export class SessionPredictor {
     }
     for (const page of options.allowedPages) checkIdentifier(page);
     this.pages = new Set(options.allowedPages);
-    this.maxSessions = options.maxSessions ?? 32;
-    this.maxGapMs = options.maxGapMs ?? 30 * 60 * 1000;
-    this.limit = options.limit ?? 1;
-    checkPositiveInteger(this.maxSessions, 'maxSessions');
-    checkPositiveInteger(this.limit, 'limit');
-    if (!Number.isFinite(this.maxGapMs) || this.maxGapMs <= 0) {
-      throw new RangeError('maxGapMs must be finite and positive.');
-    }
+    const policy = resolveSessionPolicy({ maxSessions: options.maxSessions, maxGapMs: options.maxGapMs, limit: options.limit });
+    this.maxSessions = policy.maxSessions;
+    this.maxGapMs = policy.maxGapMs;
+    this.limit = policy.limit;
   }
 
   /** Disabling clears session cursors, retains aggregate history, and suppresses inference. */

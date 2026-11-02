@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "selection": { "metric": "hitRateAll", "minCoverage": 0.25, "maxMeanCandidates": 1 },
+  "candidates": [
+    { "id": "current", "overrides": {} },
+    { "id": "recent", "overrides": { "model": { "windowSize": 16 } } },
+    { "id": "guarded", "overrides": { "model": { "windowSize": 16, "minSamples": 3, "minProbability": 0.6 } } },
+    { "id": "top-two", "overrides": { "session": { "limit": 2 } } }
+  ]
+}

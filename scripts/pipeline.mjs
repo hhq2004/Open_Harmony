@@ -19,6 +19,7 @@ const stages = [
   { name: 'synthetic-replay', args: ['benchmarks/replay.mjs'] },
   { name: 'prediction-evaluation', args: ['benchmarks/prediction.mjs', '--output-root', join(outDir, 'prediction-evaluation')] },
   { name: 'prediction-event-evaluation', args: ['benchmarks/prediction.mjs', '--input', 'benchmarks/fixtures/prediction-events.json', '--output-root', join(outDir, 'prediction-event-evaluation')] },
+  { name: 'prediction-parameter-sweep', args: ['benchmarks/sweep.mjs', '--output-root', join(outDir, 'prediction-parameter-sweep')] },
 ];
 const report = {
   runId,
