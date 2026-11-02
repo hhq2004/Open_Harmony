@@ -2,7 +2,7 @@
 
 本仓库用于“基于用户热点触达路径预测的预加载 / 预渲染优化”课程项目。目标是在合适的空闲窗口提前准备下一页数据和视图，并验证命中收益、预测落空回收以及资源开销。
 
-代码仓库：[hhq2004/Open_Harmony](https://github.com/hhq2004/Open_Harmony)。课程要求、原始来源和模板条目见 [target.md](docs/target.md)，agent 工作规范见 [AGENT.md](AGENT.md)。本项目仅用于课程提交，外部来源赛事的赛程不自动作为课程截止时间。
+代码仓库：[hhq2004/Open_Harmony](https://github.com/hhq2004/Open_Harmony)。课程要求、原始来源和模板条目见 [target.md](docs/target.md)。本项目仅用于课程提交，外部来源赛事的赛程不自动作为课程截止时间。
 
 ## 当前开发基线
 

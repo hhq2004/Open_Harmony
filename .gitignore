@@ -7,6 +7,7 @@ temp_*
 !.env.example
 .codex/
 .idea/
+/AGENT.md
 *.log
 *.p12
 *.pfx
