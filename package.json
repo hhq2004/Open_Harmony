@@ -1,0 +1,19 @@
+{
+  "name": "openharmony-p07",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "P07 host-side contracts, prediction baseline and development pipeline",
+  "engines": { "node": ">=22 <23" },
+  "scripts": {
+    "doctor": "node scripts/doctor.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "node scripts/build.mjs",
+    "pretest": "npm run build",
+    "test": "node --test",
+    "prereplay": "npm run build",
+    "replay": "node benchmarks/replay.mjs",
+    "pipeline": "node scripts/pipeline.mjs"
+  },
+  "devDependencies": { "typescript": "5.9.3" }
+}

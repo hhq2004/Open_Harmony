@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>考核详情 · 北京理工大学信息技术创新学院</title>
+<script>
+// 登录守卫
+if (!localStorage.getItem('bit_user')) location.replace('login.html');
+</script>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#111a30; --panel2:#0d1528;
+    --txt:#dbe4ff; --dim:#7c8db5; --line:#22304f; --acc:#fbbf24;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    background:radial-gradient(1200px 600px at 20% -10%, #15224a 0%, var(--bg) 55%) fixed;
+    color:var(--txt); min-height:100vh; display:flex; flex-direction:column;
+  }
+  header{
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:14px 22px; background:rgba(11,16,32,.85); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line); position:sticky; top:0; z-index:10;
+  }
+  header .org{color:var(--acc);font-size:17px;font-weight:700;white-space:nowrap;letter-spacing:.5px;}
+  header h1{font-size:18px; font-weight:600;}
+  header .sp{flex:1;}
+  header a.home{
+    color:#7dd3fc; text-decoration:none; font-size:13px;
+    border:1px solid var(--line); padding:5px 12px; border-radius:8px;
+  }
+  header a.home:hover{background:var(--panel);}
+  header #uname{font-size:13px; color:var(--dim);}
+  main{flex:1; max-width:960px; width:100%; margin:0 auto; padding:24px 20px 70px;}
+
+  /* 面包屑 */
+  .crumb{font-size:13px; color:var(--dim); margin-bottom:18px;}
+  .crumb a{color:#7dd3fc; text-decoration:none;}
+  .crumb a:hover{text-decoration:underline;}
+  .crumb .sep{margin:0 7px; opacity:.55;}
+
+  /* 标题区 */
+  .hero{display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding-bottom:20px; margin-bottom:24px; border-bottom:1px solid var(--line);}
+  .hero .big{font-size:40px; line-height:1;}
+  .hero .tt{font-size:26px; font-weight:700; letter-spacing:.5px;}
+  .hero .meta{font-size:13px; color:var(--dim); margin-top:7px;}
+  /* 分值徽标 */
+  .hero .sc{margin-left:auto; display:flex; align-items:baseline; gap:7px;
+    border:1px solid var(--line); border-radius:12px; padding:8px 20px;}
+  .hero .sc b{font-size:36px; font-weight:800; line-height:1; color:var(--acc);
+    font-family:Consolas,"Cascadia Mono","Courier New","Microsoft YaHei",monospace;}
+  .hero .sc i{font-style:normal; font-size:15px; font-weight:600; color:var(--acc); opacity:.85;}
+  .hero .sc.empty b{font-size:18px; color:#5d6d99;}
+  .hero .sc.empty i{color:#5d6d99; opacity:1;}
+
+  /* 详情区块 */
+  .sec{background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:20px 22px; margin-bottom:18px;}
+  .sec > h3{font-size:16.5px; font-weight:700; letter-spacing:.3px;
+    display:flex; align-items:center; gap:9px; margin-bottom:15px;}
+  .sec > h3::before{content:''; width:3px; height:15px; border-radius:2px; background:var(--acc);}
+
+  /* 键值表 */
+  .kv{display:grid; grid-template-columns:118px 1fr; gap:0;}
+  .kv > div{padding:11px 0; border-bottom:1px dashed var(--line); font-size:13.5px; line-height:1.75;}
+  .kv > div:nth-last-child(-n+2){border-bottom:none;}
+  .kv .k{color:var(--dim);}
+  .kv .v{color:var(--txt); word-break:break-word;}
+
+  /* 表格 */
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th,td{text-align:left; padding:11px 12px; border-bottom:1px solid var(--line); line-height:1.7;}
+  th{color:var(--dim); font-weight:600; font-size:13px; background:rgba(255,255,255,.02);}
+  th.ctr,td.ctr{text-align:center;}
+  th:first-child,td:first-child{border-top-left-radius:8px;}
+  th:last-child,td:last-child{border-top-right-radius:8px;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover td{background:rgba(125,211,252,.045);}
+  td:first-child{color:var(--txt); font-weight:600;}
+
+  /* 段落 */
+  p.para{font-size:13.5px; line-height:2; color:var(--txt); word-break:break-word;}
+
+  /* 区块内多个内容块之间的间距 */
+  .sec > * + *{margin-top:13px;}
+
+  /* 命题列表（自动编号，双列自适应；每项可点进项目分析） */
+  ol.topics{margin:0; padding:0; list-style:none;
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(322px,1fr)); gap:8px 14px;}
+  ol.topics li{display:flex;}
+  ol.topics li > a.tl{display:flex; align-items:flex-start; gap:10px; width:100%;
+    font-size:13.5px; line-height:1.65; padding:9px 12px; text-decoration:none;
+    background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:9px;
+    color:inherit; transition:border-color .18s, background .18s, transform .18s;}
+  ol.topics li > a.tl:hover{border-color:#7dd3fc; background:rgba(125,211,252,.07);
+    transform:translateY(-1px);}
+  ol.topics .tn{flex:0 0 auto; min-width:17px; padding-top:1px;
+    font-family:Consolas,"Cascadia Mono","Courier New",monospace;
+    font-size:11.5px; font-weight:700; color:var(--acc); opacity:.8;}
+  ol.topics .tx{flex:1; min-width:0; color:var(--txt); word-break:break-word;}
+  ol.topics .ts{display:block; margin-top:3px; font-size:11.5px; color:var(--dim);}
+  ol.topics .ar{flex:0 0 auto; padding-top:1px; font-size:11.5px; color:#7dd3fc;
+    white-space:nowrap; opacity:0; transition:opacity .18s;}
+  ol.topics li > a.tl:hover .ar{opacity:1;}
+  /* 不可点击的命题项（无对应分析数据时） */
+  ol.topics li > .tl-plain{display:flex; align-items:flex-start; gap:10px; width:100%;
+    font-size:13.5px; line-height:1.65; padding:9px 12px;
+    background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:9px;}
+
+  /* 区块脚注 */
+  p.secnote{font-size:12.5px; color:var(--dim); line-height:1.8;}
+
+  /* 外链列表 */
+  ul.links{margin:0; padding:0; list-style:none;}
+  ul.links li{margin:7px 0;}
+  ul.links a{display:flex; align-items:center; gap:8px; text-decoration:none;
+    color:#7dd3fc; font-size:13.5px; line-height:1.7; padding:10px 14px;
+    background:rgba(125,211,252,.06); border:1px solid var(--line); border-radius:10px;
+    transition:border-color .18s, background .18s;}
+  ul.links a:hover{border-color:#7dd3fc; background:rgba(125,211,252,.12);}
+  ul.links .lk{word-break:break-word;}
+  ul.links .ar{margin-left:auto; flex:0 0 auto; opacity:.8;}
+
+  .gmount{display:block}
+.g-demo-link{display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-size:13.5px;font-weight:600;text-decoration:none;color:var(--gg-hero-txt);background:var(--gg-hero-chip-bg);border:1px solid var(--gg-hero-chip-bd);border-radius:999px;padding:7px 18px;transition:background .2s,border-color .2s}
+.g-demo-link:hover{border-color:var(--gg-blue)}
+.g-inl{color:var(--gg-blue);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+/* 嵌入式指南整页 */
+  .embed-wrap{margin:-6px 0 24px; border:1px solid var(--line); border-radius:16px;
+    overflow:hidden; background:#f6f7f9; box-shadow:0 6px 24px rgba(0,0,0,.18);}
+  .embed-frame{display:block; width:100%; height:78vh; min-height:560px; border:0; background:#fff;}
+
+  /* 标题下的副标题 */
+  .hero .sub2{font-size:13.5px; font-weight:600; color:var(--acc); margin-top:6px;}
+  /* 外部链接按钮 */
+  .hero .site{display:inline-flex; align-items:center; gap:6px; margin-top:9px;
+    text-decoration:none; font-size:12.5px; font-weight:600; color:#7dd3fc;
+    border:1px solid var(--line); border-radius:20px; padding:4px 13px;
+    transition:border-color .18s, background .18s;}
+  .hero .site:hover{border-color:#7dd3fc; background:rgba(125,211,252,.1);}
+
+  /* 列表 */
+  ul.list{margin:0; padding-left:20px; font-size:13.5px; line-height:1.95;}
+  ul.list li{margin:5px 0; word-break:break-word;}
+
+  .tbd{color:#5d6d99; border-bottom:1px dashed #3b4a72; padding-bottom:1px; font-size:13px;}
+  .note{margin-top:22px; padding:15px 18px; border-radius:12px; font-size:13.5px; line-height:1.85;
+    background:rgba(125,211,252,.07); border-left:3px solid #7dd3fc; color:var(--txt);}
+  .note b{color:#7dd3fc;}
+  .note.warn{background:rgba(251,191,36,.07); border-left-color:var(--acc);}
+  .note.warn b{color:var(--acc);}
+
+  /* 同课程其他考核项 */
+  .others{display:flex; gap:12px; flex-wrap:wrap; margin-top:22px;}
+  .others a{display:flex; align-items:center; gap:9px; text-decoration:none; color:var(--txt);
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:11px 17px; font-size:13.5px; transition:border-color .18s, transform .18s;}
+  .others a:hover{border-color:var(--acc); transform:translateY(-2px);}
+  .others .lbl{font-size:13px; color:var(--dim); align-self:center; margin-right:2px;}
+  footer{text-align:center; font-size:12.5px; color:var(--dim); padding:30px 20px 10px;}
+  @media (max-width:640px){
+    .hero .tt{font-size:21px;}
+    .hero .sc{margin-left:0;}
+    .kv{grid-template-columns:96px 1fr;}
+  }
+</style>
+<script src="theme.js"></script>
+<style>
+/* ===== 交互指南样式（g- 前缀 · 配色跟随站点背景主题）===== */
+
+/* ===== 交互指南样式（g- 前缀 · 深色主题） ===== */
+.g-guide{display:none;   /* 默认隐藏；仅 guideMode:"embed" 时由主脚本搬入 .gmount 并显示 */
+  /* ===== 基础色：跟随站点背景主题（theme.js 的 --panel/--panel2/--txt/--dim/--line）===== */
+  --gg-bg:var(--panel); --gg-card:var(--panel2); --gg-chip:var(--panel);
+  --gg-ink:var(--txt); --gg-sub:var(--dim); --gg-faint:var(--dim); --gg-line:var(--line);
+  --gg-mono:Consolas,"Cascadia Mono","Courier New","Microsoft YaHei",monospace;
+  --gg-shadow:0 1px 3px rgba(0,0,0,.28),0 4px 14px rgba(0,0,0,.22);
+  /* ===== 强调色（深色底稿；浅色主题另有覆盖）===== */
+  --gg-blue:#7dd3fc; --gg-blue2:#7dd3fc; --gg-blue3:#3b82f6; --gg-blue-bg:rgba(125,211,252,.10);
+  --gg-teal:#4ade80; --gg-teal-bg:rgba(74,222,128,.10);
+  --gg-red:#f87171; --gg-red-bg:rgba(248,113,113,.10);
+  --gg-amber:#fbbf24; --gg-amber-bg:rgba(251,191,36,.10);
+  /* ===== 深色构件（hero / 会话条 / 翻卡背面 / 选择条）===== */
+  --gg-hero1:#0e2c4e; --gg-hero2:#1d4ed8;
+  --gg-hero-txt:rgba(255,255,255,.92); --gg-hero-ink:#d7e7f5;
+  --gg-hero-chip-bg:rgba(255,255,255,.12); --gg-hero-chip-bd:rgba(255,255,255,.22);
+  --gg-type:#fcd34d; --gg-kicker:#a5d8ff; --gg-hint2:#93c5fd;
+  --gg-ok:#86efac; --gg-border2:#5d87b8; --gg-spin:#33507e;
+  --gg-redline:#fca5a5; --gg-redline-bd:rgba(248,113,113,.45);
+  --gg-btn1:#60a5fa; --gg-btn2:#7dd3fc;
+  --gg-on-accent:#0b1020; --gg-btn-txt:#0b1020;
+  color:var(--gg-ink);
+}
+/* 次级文字比 --dim 略亮一档（不支持 color-mix 时退回 --dim）*/
+@supports (color: color-mix(in srgb, red 50%, blue)){
+  .g-guide{--gg-sub:color-mix(in srgb, var(--dim) 68%, var(--txt));}
+}
+/* ===== 浅色主题：强调色与深色构件换成浅底可读的一档 ===== */
+html[data-bg="light"] .g-guide{
+  --gg-chip:#fff; --gg-sub:#475569; --gg-faint:#64748b;
+  --gg-blue:#0369a1; --gg-blue2:#0284c7; --gg-blue3:#2563eb; --gg-blue-bg:rgba(3,105,161,.09);
+  --gg-teal:#15803d; --gg-teal-bg:rgba(21,128,61,.10);
+  --gg-red:#b91c1c; --gg-red-bg:rgba(185,28,28,.09);
+  --gg-amber:#a16207; --gg-amber-bg:rgba(161,98,7,.10);
+  --gg-hero1:#dbeafe; --gg-hero2:#bfdbfe;
+  --gg-hero-txt:#1e3a5f; --gg-hero-ink:#1e3a5f;
+  --gg-hero-chip-bg:rgba(29,78,216,.08); --gg-hero-chip-bd:rgba(29,78,216,.20);
+  --gg-type:#a16207; --gg-kicker:#1d4ed8; --gg-hint2:#0369a1;
+  --gg-ok:#15803d; --gg-border2:#94a3b8; --gg-spin:#cbd5e1;
+  --gg-redline:#7f1d1d; --gg-redline-bd:rgba(185,28,28,.35);
+  --gg-btn1:#2563eb; --gg-btn2:#3b82f6; --gg-on-accent:#fff; --gg-btn-txt:#fff;
+  --gg-shadow:0 1px 3px rgba(30,41,59,.07),0 4px 14px rgba(30,41,59,.06);
+}
+
+/* :root removed */
+*{margin:0;padding:0;box-sizing:border-box}/* html{} removed */
+/* body 规则已移除（避免污染站点页面）*/
+.g-wrap{max-width:1060px;margin:0 auto;padding:0 22px}
+.g-guide section{padding:52px 0 8px}
+h2.g-sec{font-size:22px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+h2.g-sec .g-no{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--gg-blue);color:var(--gg-hero-txt);font-size:14px;font-weight:600;flex:none}
+.g-lead{color:var(--gg-sub);margin-bottom:22px;max-width:760px}
+.g-tag{display:inline-block;font-family:var(--gg-mono);font-size:12px;background:var(--gg-blue-bg);color:var(--gg-blue);border-radius:6px;padding:1px 8px;vertical-align:2px}
+
+/* ---------- hero ---------- */
+.g-hero{background:linear-gradient(180deg,var(--gg-hero1) 0%,var(--gg-hero2) 100%);color:var(--gg-hero-txt);padding:52px 0 74px;position:relative;overflow:hidden}
+.g-hero .g-wrap{position:relative;z-index:2}
+.g-hero .g-kicker{font-family:var(--gg-mono);font-size:13px;color:var(--gg-kicker);letter-spacing:2px;margin-bottom:10px}
+.g-hero h1{font-size:34px;font-weight:700;letter-spacing:.5px;margin-bottom:12px}
+.g-type{font-family:var(--gg-mono);font-size:17px;color:var(--gg-type);min-height:30px}
+.g-type .g-cursor{display:inline-block;width:9px;height:20px;background:var(--gg-type);margin-left:2px;vertical-align:-3px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.g-hero .g-meta{margin-top:12px;display:flex;flex-wrap:wrap;gap:10px}
+.g-hero .g-meta span{font-size:13px;background:var(--gg-hero-chip-bg);border:1px solid var(--gg-hero-chip-bd);padding:4px 12px;border-radius:999px}
+.g-hero .g-wave{position:absolute;bottom:-1px;left:0;right:0;height:56px;background:var(--gg-bg);clip-path:ellipse(55% 100% at 50% 100%)}
+
+/* ---------- reveal on scroll ---------- */
+.g-reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
+.g-reveal.g-in{opacity:1;transform:none}
+.g-reveal.g-d1{transition-delay:.08s}.g-reveal.g-d2{transition-delay:.16s}.g-reveal.g-d3{transition-delay:.24s}
+
+/* ---------- cards ---------- */
+.g-grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.g-card{background:var(--gg-card);border:1px solid var(--gg-line);border-radius:14px;padding:20px 20px 18px;box-shadow:var(--gg-shadow)}
+.g-card h3{font-size:16px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.g-card p{font-size:13.5px;color:var(--gg-sub)}
+.g-card .g-big{font-size:15px;color:var(--gg-ink)}
+.g-emo{width:34px;height:34px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:17px;flex:none}
+
+/* ---------- timeline (six parts) ---------- */
+.g-tl{position:relative;margin:10px 0 8px;padding-left:30px}
+.g-tl::before{content:"";position:absolute;left:9px;top:8px;bottom:8px;width:2px;background:var(--gg-line)}
+.g-tl-item{position:relative;padding:0 0 26px 14px}
+.g-tl-item::before{content:"";position:absolute;left:-27px;top:7px;width:12px;height:12px;border-radius:50%;background:var(--gg-chip);border:3px solid var(--gg-blue2);transition:transform .3s}
+.g-tl-item:hover::before{transform:scale(1.25)}
+.g-tl-item h3{font-size:16px;margin-bottom:4px}
+.g-tl-item .g-pg{font-size:12px;color:var(--gg-faint);font-family:var(--gg-mono);margin-left:8px}
+.g-tl-item p{font-size:13.5px;color:var(--gg-sub);max-width:720px}
+.g-tl-item .g-must{display:inline-block;font-size:12px;background:var(--gg-amber-bg);color:var(--gg-amber);border-radius:6px;padding:0 8px;margin-left:6px;vertical-align:1px}
+
+/* ---------- anchor lab ---------- */
+.g-lab{background:var(--gg-card);border:1px solid var(--gg-line);border-radius:16px;box-shadow:var(--gg-shadow);overflow:hidden}
+.g-lab-head{background:var(--gg-hero1);color:var(--gg-hero-ink);padding:12px 18px;font-family:var(--gg-mono);font-size:13px;display:flex;align-items:center;gap:8px}
+.g-lab-head .g-dot{width:10px;height:10px;border-radius:50%}
+.g-lab-body{padding:20px}
+.g-pills{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+.g-pill{font-family:var(--gg-mono);font-size:13px;border:1.5px solid var(--gg-blue2);color:var(--gg-blue);background:var(--gg-chip);border-radius:999px;padding:6px 16px;cursor:pointer;transition:all .2s}
+.g-pill:hover{background:var(--gg-blue-bg)}
+.g-pill.g-on{background:var(--gg-blue);color:var(--gg-on-accent);border-color:var(--gg-blue)}
+.g-checks{min-height:150px}
+.g-checkline{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:10px;margin-bottom:6px;background:var(--gg-bg);opacity:0;transform:translateX(-12px);transition:all .35s}
+.g-checkline.g-show{opacity:1;transform:none}
+.g-checkline .g-st{font-family:var(--gg-mono);font-weight:700;width:22px;flex:none;text-align:center}
+.g-checkline.g-ok .g-st{color:var(--gg-teal)} .g-checkline.g-bad .g-st{color:var(--gg-red)}
+.g-checkline.g-ok{background:var(--gg-teal-bg)} .g-checkline.g-bad{background:var(--gg-red-bg)}
+.g-checkline .g-tx{font-size:13.5px}
+.g-checkline .g-tx code{font-family:var(--gg-mono);font-size:12.5px;background:var(--gg-chip);padding:1px 6px;border-radius:5px;border:1px solid var(--gg-line)}
+.g-verdict{margin-top:12px;font-weight:600;font-size:14px;padding:10px 14px;border-radius:10px;opacity:0;transition:opacity .4s}
+.g-verdict.g-show{opacity:1}
+.g-verdict.g-good{background:var(--gg-teal-bg);color:var(--gg-teal)}
+.g-verdict.g-bad{background:var(--gg-red-bg);color:var(--gg-red)}
+.g-spin{display:inline-block;width:14px;height:14px;border:2px solid var(--gg-spin);border-top-color:var(--gg-blue);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- flip cards ---------- */
+.g-flips{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.g-flip{perspective:1100px;height:230px;cursor:pointer}
+.g-flip .g-inner{position:relative;width:100%;height:100%;transition:transform .65s cubic-bezier(.2,.7,.3,1);transform-style:preserve-3d}
+.g-flip.g-flipped .g-inner{transform:rotateY(180deg)}
+.g-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:14px;padding:18px;display:flex;flex-direction:column}
+.g-face.g-front{background:var(--gg-card);border:1px solid var(--gg-line);box-shadow:var(--gg-shadow)}
+.g-face.g-back{background:var(--gg-hero1);color:var(--gg-hero-ink);transform:rotateY(180deg)}
+.g-face .g-who{font-family:var(--gg-mono);font-size:12px;letter-spacing:1px;margin-bottom:8px}
+.g-face.g-front .g-who{color:var(--gg-blue)}
+.g-face .g-claim{font-size:14.5px;font-weight:600;margin-bottom:10px}
+.g-face .g-hint{margin-top:auto;font-size:12px;color:var(--gg-faint)}
+.g-face.g-back .g-hint{color:var(--gg-hint2)}
+.g-face.g-back .g-truth{font-size:13.5px;line-height:1.65}
+.g-face.g-back .g-truth code{font-family:var(--gg-mono);font-size:12px;color:var(--gg-type)}
+.g-ai-mark{display:inline-flex;align-items:center;gap:6px;font-size:12px;background:var(--gg-red-bg);color:var(--gg-red);border-radius:6px;padding:1px 8px;margin-bottom:10px;width:fit-content}
+
+/* ---------- dial chain ---------- */
+.g-chainbox{background:var(--gg-card);border:1px solid var(--gg-line);border-radius:16px;box-shadow:var(--gg-shadow);padding:22px}
+.g-chain-ctl{display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.g-btn{font-size:14px;font-weight:600;border:none;border-radius:10px;padding:10px 22px;cursor:pointer;transition:transform .15s,box-shadow .15s;background:linear-gradient(135deg,var(--gg-btn1),var(--gg-btn2));color:var(--gg-btn-txt);box-shadow:0 3px 10px rgba(24,95,165,.35)}
+.g-btn:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(24,95,165,.45)}
+.g-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.g-btn.g-ghost{background:var(--gg-chip);color:var(--gg-blue);border:1.5px solid var(--gg-blue2);box-shadow:none}
+.g-chain-stat{font-family:var(--gg-mono);font-size:13px;color:var(--gg-sub)}
+.g-chain-stat b{color:var(--gg-teal)}
+.g-chain{list-style:none;position:relative;max-height:430px;overflow-y:auto;padding-right:6px}
+.g-chain::before{content:"";position:absolute;left:13px;top:10px;bottom:10px;width:2px;background:var(--gg-line)}
+.g-hop{position:relative;display:flex;align-items:center;gap:12px;padding:7px 10px 7px 0;border-radius:10px;margin-left:0;transition:background .3s}
+.g-hop .g-nd{color:var(--gg-ink);width:28px;height:28px;border-radius:50%;background:var(--gg-chip);border:2.5px solid var(--gg-line);display:flex;align-items:center;justify-content:center;font-size:12px;font-family:var(--gg-mono);color:var(--gg-faint);flex:none;z-index:1;transition:all .3s}
+.g-hop .g-lb{font-size:13.5px;font-weight:600;color:var(--gg-sub);transition:color .3s}
+.g-hop .g-anch{margin-left:auto;font-family:var(--gg-mono);font-size:11px;color:var(--gg-faint);background:var(--gg-bg);border-radius:6px;padding:2px 8px;opacity:.75;transition:all .3s;white-space:nowrap}
+.g-hop.g-lit .g-nd{border-color:var(--gg-teal);background:var(--gg-teal);color:var(--gg-on-accent)}
+.g-hop.g-lit .g-lb{color:var(--gg-ink)}
+.g-hop.g-lit .g-anch{opacity:1;color:var(--gg-teal);background:var(--gg-teal-bg)}
+.g-hop.g-done-flash{animation:hopflash .5s ease}
+@keyframes hopflash{0%{background:var(--gg-teal-bg)}100%{background:transparent}}
+.g-atd-pop{margin-top:14px;background:linear-gradient(135deg,var(--gg-hero1),var(--gg-blue3));color:var(--gg-type);font-family:var(--gg-mono);font-size:14px;border-radius:12px;padding:14px 18px;opacity:0;transform:scale(.96);transition:all .45s}
+.g-atd-pop.g-show{opacity:1;transform:none}
+.g-atd-pop .g-ok{color:var(--gg-ok)}
+
+/* ---------- workflow pipeline ---------- */
+.g-pipe{display:flex;flex-wrap:wrap;gap:0;align-items:stretch;margin:8px 0 6px}
+.g-step{flex:1;min-width:150px;position:relative;background:var(--gg-card);border:1px solid var(--gg-line);padding:16px 14px 14px;transition:all .35s;opacity:.55}
+.g-step:first-child{border-radius:12px 0 0 12px}
+.g-step:last-child{border-radius:0 12px 12px 0}
+.g-step+.g-step{border-left:none}
+.g-step::after{content:"→";position:absolute;right:-9px;top:50%;transform:translateY(-50%);z-index:2;background:var(--gg-bg);color:var(--gg-faint);font-weight:700}
+.g-step:last-child::after{content:""}
+.g-step .g-n{font-family:var(--gg-mono);font-size:11px;color:var(--gg-blue);letter-spacing:1px}
+.g-step h4{font-size:14.5px;margin:2px 0 4px}
+.g-step p{font-size:12px;color:var(--gg-sub)}
+.g-step.g-lit{opacity:1;border-color:var(--gg-blue2);box-shadow:var(--gg-shadow);transform:translateY(-3px)}
+.g-step.g-lit::after{color:var(--gg-blue2)}
+
+/* ---------- rubric ---------- */
+.g-rubric{background:var(--gg-card);border:1px solid var(--gg-line);border-radius:16px;box-shadow:var(--gg-shadow);padding:8px 22px 14px}
+.g-rrow{display:grid;grid-template-columns:170px 1fr 64px;gap:14px;align-items:center;padding:12px 0;border-bottom:1px dashed var(--gg-line)}
+.g-rrow:last-child{border-bottom:none}
+.g-rrow .g-dim{font-size:14px;font-weight:600}
+.g-rrow .g-dim small{display:block;font-weight:400;color:var(--gg-faint);font-size:12px}
+.g-bar{height:10px;border-radius:6px;background:var(--gg-bg);overflow:hidden}
+.g-bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--gg-btn2),var(--gg-btn2));transition:width 1s cubic-bezier(.2,.7,.3,1)}
+.g-rrow .g-sc{font-family:var(--gg-mono);font-size:14px;color:var(--gg-blue);text-align:right}
+.g-rline-total{display:flex;justify-content:space-between;font-size:13px;color:var(--gg-sub);padding:10px 2px 2px}
+
+/* ---------- subsystem picker (100) ---------- */
+.g-subbar{display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.g-subsearch{flex:1;min-width:240px;font-size:14px;padding:10px 16px;border:1.5px solid var(--gg-line);border-radius:10px;outline:none;transition:border .2s;background:var(--gg-chip);color:var(--gg-ink)}
+.g-subsearch::placeholder{color:var(--gg-faint);opacity:.9}
+.g-subsearch:focus{border-color:var(--gg-blue2)}
+.g-subcount{font-family:var(--gg-mono);font-size:13px;color:var(--gg-sub)}
+.g-subcount b{color:var(--gg-blue)}
+.g-cathorizontal{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.g-cchip{font-size:12.5px;border:1.5px solid var(--gg-line);background:var(--gg-chip);color:var(--gg-sub);border-radius:999px;padding:4px 13px;cursor:pointer;transition:all .2s}
+.g-cchip:hover{border-color:var(--gg-blue2);color:var(--gg-blue)}
+.g-cchip.g-on{background:var(--gg-blue);border-color:var(--gg-blue);color:var(--gg-on-accent)}
+.g-cchip .g-cnt{font-size:10.5px;opacity:.7;margin-left:3px}
+.g-subgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:11px}
+.g-subcard{background:var(--gg-card);border:1.5px solid var(--gg-line);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all .18s;position:relative;animation:subin .35s ease both}
+@keyframes subin{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.g-subcard:hover{border-color:var(--gg-blue2);transform:translateY(-2px);box-shadow:var(--gg-shadow)}
+.g-subcard.g-picked{border-color:var(--gg-teal);background:var(--gg-teal-bg)}
+.g-subcard.g-picked::after{content:"✓ 已加入意向";position:absolute;top:8px;right:10px;font-size:10.5px;color:var(--gg-teal);font-weight:700;animation:pop .3s ease}
+.g-subcard .g-cat{font-size:10.5px;color:var(--gg-faint);letter-spacing:.5px}
+.g-subcard h4{font-size:14px;margin:1px 0 3px}
+.g-subcard h4 .g-rn{font-family:var(--gg-mono);font-size:10.5px;color:var(--gg-blue);display:block;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-subcard p{font-size:12px;color:var(--gg-sub);min-height:32px}
+.g-subcard .g-kk{font-size:11px;color:var(--gg-faint);border-top:1px dashed var(--gg-line);padding-top:5px;margin-top:5px}
+.g-subcard .g-kk b{color:var(--gg-teal);font-weight:600}
+.g-subcard .g-tgs{position:absolute;top:8px;right:10px;font-size:10px}
+.g-subcard .g-tgs .g-warn{color:var(--gg-amber);background:var(--gg-amber-bg);border-radius:5px;padding:0 5px}
+.g-subcard .g-tgs .g-lite{color:var(--gg-teal);background:var(--gg-teal-bg);border-radius:5px;padding:0 5px}
+.g-subcard.g-picked .g-tgs{display:none}
+.g-pickbar{position:sticky;bottom:14px;margin-top:16px;background:var(--gg-hero1);color:var(--gg-hero-ink);border-radius:12px;padding:11px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 6px 20px rgba(12,45,77,.35)}
+.g-pk-l{font-size:12.5px}
+.g-pk-items{flex:1;font-family:var(--gg-mono);font-size:12px;color:var(--gg-type);min-height:18px}
+.g-pk-clear{font-size:12px;background:transparent;border:1px solid var(--gg-border2);color:var(--gg-kicker);border-radius:8px;padding:3px 12px;cursor:pointer}
+.g-pk-clear:hover{background:var(--gg-hero2)}
+
+/* ---------- redline ---------- */
+.g-redbox{background:var(--gg-red-bg);border:1.5px solid var(--gg-redline);border-radius:14px;padding:20px 24px;display:flex;gap:16px;align-items:flex-start}
+.g-redbox .g-pulse{width:14px;height:14px;border-radius:50%;background:var(--gg-red);flex:none;margin-top:6px;animation:pulse 1.6s ease infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(163,45,45,.45)}70%{box-shadow:0 0 0 12px rgba(163,45,45,0)}100%{box-shadow:0 0 0 0 rgba(163,45,45,0)}}
+.g-redbox b{color:var(--gg-red)}
+.g-redbox p{font-size:13.5px;color:var(--gg-redline)}
+
+/* ---------- deliverables ---------- */
+.g-dels{columns:2;column-gap:18px;margin-top:6px}
+.g-dels li{background:var(--gg-card);border:1px solid var(--gg-line);border-radius:10px;padding:10px 14px;margin:0 0 10px;list-style:none;font-size:13.5px;break-inside:avoid;display:flex;gap:8px}
+.g-dels li code{font-family:var(--gg-mono);font-size:12px;color:var(--gg-blue);background:var(--gg-blue-bg);border-radius:5px;padding:0 6px}
+.g-guide footer{margin-top:56px;padding:26px 0 34px;border-top:1px solid var(--gg-line);color:var(--gg-faint);font-size:12.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+@media (max-width:720px){
+  .g-dels{columns:1}
+  .g-rrow{grid-template-columns:120px 1fr 48px}
+  .g-hero h1{font-size:26px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001s!important;transition-duration:.001s!important}/* html{} removed */
+}
+
+
+</style>
+</head>
+<body>
+<header>
+  <span class="org">北京理工大学信息技术创新学院</span>
+  <h1 id="cn">考核详情</h1>
+  <span class="sp"></span>
+  <span id="uname"></span>
+  <a class="home" id="backAs" href="assessment.html">← 课程考核</a>
+  <a class="home" href="index.html">← 返回首页</a>
+</header>
+
+<main>
+  <div class="crumb" id="crumb"></div>
+  <div id="panel"></div>
+  <footer id="foot"></footer>
+</main>
+
+<script src="data/assess.js"></script>
+<script>
+const COURSE_NAME = {
+  cangjie:'仓颉语言', oh_app:'应用开发', oh_device:'开源鸿蒙设备开发',
+  python:'Python', cpp:'C++', rust:'Rust', ascendc:'Ascend C',
+  typescript:'TypeScript', cangjie_case:'仓颉语言鸿蒙应用开发案例',
+  cangjie_server:'仓颉语言服务器端开发', cangjie_algo:'仓颉语言版数据结构与算法',
+  oh_system:'开源鸿蒙系统设计理论与实践', cann:'CANN', openjiuwen:'openJiuwen'
+};
+
+/* ===== 用户 ===== */
+try{
+  const u = JSON.parse(localStorage.getItem('bit_user')||'null');
+  if (u && u.name) document.getElementById('uname').textContent = '👤 ' + u.name;
+}catch(e){}
+
+/* ===== 参数 ===== */
+const qs = new URLSearchParams(location.search);
+const courseId = qs.get('course') || 'cangjie';
+const itemId   = qs.get('item') || '';
+const courseName = COURSE_NAME[courseId] || COURSE_NAME.cangjie;
+// 每门课程独立取自己的数据块，不做跨课程兜底
+const data = (window.ASSESS_DATA && window.ASSESS_DATA[courseId]) || { years: [] };
+
+/* ===== 定位考核项 ===== */
+const years = data.years || [];
+const yr = years.find(y => y.cur) || years[0] || null;
+const items = (yr && yr.items) || [];
+const item = items.find(i => i.id === itemId) || null;
+
+document.getElementById('backAs').href = 'assessment.html?course=' + encodeURIComponent(courseId);
+
+/* ===== 工具 ===== */
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function isBlank(v){ return v === undefined || v === null || v === ''; }
+function val(v){ return isBlank(v) ? '<span class="tbd">待补充</span>' : esc(v); }
+function scoreNum(sc){
+  if (isBlank(sc)) return null;
+  const m = String(sc).match(/^\s*(\d+(?:\.\d+)?)\s*分?\s*$/);
+  return m ? m[1] : null;
+}
+function scoreHtml(sc){
+  const n = scoreNum(sc);
+  return n === null
+    ? '<span class="sc empty"><b>' + (isBlank(sc) ? '待补充' : esc(sc)) + '</b></span>'
+    : '<span class="sc"><b>' + n + '</b><i>分</i></span>';
+}
+
+function sectionHtml(sec){
+  let inner = '';
+  // 段落
+  if (sec.p) {
+    inner += '<p class="para">' + val(sec.p) + '</p>';
+  }
+  // 键值表
+  if (sec.kv) {
+    inner += '<div class="kv">' + sec.kv.map(([k,v]) =>
+      '<div class="k">' + esc(k) + '</div><div class="v">' + val(v) + '</div>').join('') + '</div>';
+  }
+  // 表格
+  if (sec.table) {
+    const ctr = sec.table.center || [];
+    const cls = i => ctr.indexOf(i) >= 0 ? ' class="ctr"' : '';
+    const head = (sec.table.head || []).map((h, i) => '<th' + cls(i) + '>' + esc(h) + '</th>').join('');
+    const rows = (sec.table.rows || []).map(r =>
+      '<tr>' + r.map((c, i) => '<td' + cls(i) + '>' + val(c) + '</td>').join('') + '</tr>').join('');
+    inner += '<table><thead><tr>' + head + '</tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+  // 无序列表
+  if (sec.list) {
+    inner += '<ul class="list">' + sec.list.map(v => '<li>' + val(v) + '</li>').join('') + '</ul>';
+  }
+  // 命题列表（自动编号，双列自适应）
+  // 「可选项目列表」各项可点进 project_detail.html?p=Pxx 查看项目分析；
+  // 其他 topics 段落保持纯文本（避免编号与项目编号错位）。
+  if (sec.topics) {
+    const linkable = sec.h === '可选项目列表';
+    inner += '<ol class="topics">' + sec.topics.map((t, i) => {
+      const title = typeof t === 'string' ? t : t.t;
+      const src   = typeof t === 'string' ? (sec.src || '') : (t.src || sec.src || '');
+      const no    = String(i + 1).padStart(2, '0');
+      const body  = '<span class="tn">' + no + '</span>' +
+        '<span class="tx">' + esc(title) +
+        (src ? '<span class="ts">' + esc(src) + '</span>' : '') + '</span>';
+      if (!linkable) return '<li><span class="tl-plain">' + body + '</span></li>';
+      const pid  = 'P' + no;
+      const href = 'project_detail.html?p=' + pid +
+                   '&amp;course=' + encodeURIComponent(courseId);
+      return '<li><a class="tl" href="' + href + '" title="查看 ' + esc(title) + ' 的项目分析">' +
+        body + '<span class="ar">分析 →</span></a></li>';
+    }).join('') + '</ol>';
+    if (linkable) {
+      inner += '<p class="secnote">点任意一项可查看该项目的分析：' +
+        '定位与目标 · 架构拆解 · 技术难点 · 可选技术路线 · 开源参考实现 · 对应课程章节 · 评分要点。</p>';
+    }
+  }
+  // 外链卡片
+  if (sec.links) {
+    inner += '<ul class="links">' + sec.links.map(l =>
+      '<li><a href="' + esc(l.u) + '" target="_blank" rel="noopener">' +
+      '<span class="lk">' + esc(l.t) + '</span><span class="ar">↗</span></a></li>').join('') + '</ul>';
+  }
+  // 区块脚注
+  if (sec.note) {
+    inner += '<p class="secnote">' + val(sec.note) + '</p>';
+  }
+  return '<div class="sec">' +
+    (sec.h ? '<h3>' + esc(sec.h) + '</h3>' : '') + inner + '</div>';
+}
+
+/* ===== 渲染 ===== */
+const panel = document.getElementById('panel');
+const foot  = document.getElementById('foot');
+const crumb = document.getElementById('crumb');
+
+if (!item) {
+  crumb.innerHTML = '<a href="assessment.html?course=' + encodeURIComponent(courseId) + '">课程考核</a>' +
+    '<span class="sep">/</span>未知考核项';
+  document.getElementById('cn').textContent = '未找到该考核项';
+  document.title = '未找到该考核项';
+  panel.innerHTML = '<div class="sec"><h3>未找到该考核项</h3>' +
+    '<p style="font-size:13.5px;line-height:1.9;color:var(--dim)">' +
+    '课程「' + esc(courseName) + '」下没有 id 为 <code>' + esc(itemId || '(空)') + '</code> 的考核项。' +
+    '请从 <a href="assessment.html?course=' + encodeURIComponent(courseId) +
+    '" style="color:#7dd3fc">课程考核</a> 页进入。</p></div>';
+  foot.textContent = '';
+} else {
+  const title = item.title || '考核项';
+  const pageName = courseName + ' · ' + title;
+
+  crumb.innerHTML =
+    '<a href="assessment.html?course=' + encodeURIComponent(courseId) + '">课程考核</a>' +
+    '<span class="sep">/</span><span>' + esc(courseName) + '</span>' +
+    '<span class="sep">/</span>' + esc(yr ? yr.y + ' 学年' : '') +
+    '<span class="sep">/</span><b style="color:var(--txt)">' + esc(title) + '</b>';
+  document.getElementById('cn').textContent = pageName;
+  document.title = pageName;
+
+  const sections = (item.detail || []).map(sectionHtml).join('');
+
+  const others = items.filter(i => i.id !== item.id && i.link !== false).map(i =>
+    '<a href="assessment_detail.html?course=' + encodeURIComponent(courseId) +
+    '&amp;item=' + encodeURIComponent(i.id) + '">' +
+    '<span>' + (i.icon || '📌') + '</span><span>' + esc(i.title || '考核项') + '</span></a>').join('');
+
+  const notLinked = item.link === false;   // 不设详情页的项（如考勤）
+
+  // 不设详情页的项：只给分值 + 说明
+  const isEmbed = item.guide && item.guideMode === 'embed';
+  const bodyNote = notLinked
+    ? '<div class="note"><b>说明：</b>' + esc(item.note || '本考核项不设详情页，按课堂记录计分。') + '</div>'
+    : (isEmbed ? ''   // 嵌入指南时内容自成体系，不再附加通用提示
+               : '<div class="note"><b>提示：</b>本页内容以开课时公布的教学大纲为准；' +
+                 '如有调整，以任课教师最新通知为准。</div>');
+
+  // 嵌入式指南：原生内容（guideMode:'embed'）——页面尾部的 g-guide 块将被搬入此容器
+  const embedGuide = item.guide && item.guideMode === 'embed'
+    ? '<div class="gmount"></div>'
+    : '';
+
+  // 非嵌入模式下才显示 hero 里的指南跳转按钮
+  const guideLink = item.guide && item.guideMode !== 'embed'
+    ? (item.guideText || '查看完整指南') + ' →'
+    : '';
+  const guideBtn = guideLink
+    ? '<a class="site" href="' + esc(item.guide) + '">' + esc(guideLink) + '</a>'
+    : '';
+
+  panel.innerHTML =
+    '<div class="hero">' +
+      '<span class="big">' + (item.icon || '📌') + '</span>' +
+      '<div>' +
+        '<div class="tt">' + esc(title) + '</div>' +
+        '<div class="meta">' + esc(courseName) + ' · ' + esc(yr ? yr.y + ' 学年' : '') + '</div>' +
+        (item.sub ? '<div class="sub2">' + esc(item.sub) + '</div>' : '') +
+        (item.site ? '<a class="site" href="' + esc(item.site) + '" target="_blank" rel="noopener">' +
+          esc(item.siteText || '查看详情') + ' ↗</a>' : '') +
+        guideBtn +
+      '</div>' +
+      scoreHtml(item.score) +
+    '</div>' +
+
+    embedGuide +
+
+    sections +
+
+    bodyNote +
+
+    (others ? '<div class="others"><span class="lbl">同课程其他考核：</span>' + others + '</div>' : '');
+
+  // 嵌入模式：把页面尾部的原生指南块搬进 .gmount（等 DOM 就绪）
+  (function(){
+    var mv = function(){
+      var g = document.querySelector('.g-guide');
+      var mnt = document.querySelector('.gmount');
+      if (g && mnt) { mnt.appendChild(g); g.style.display = 'block'; }
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mv);
+    else mv();
+  })();
+
+  foot.textContent = pageName + ' · 北京理工大学信息技术创新学院';
+}
+</script>
+<div class="g-guide">
+
+
+<!-- ================= HERO ================= -->
+<div class="g-hero">
+  <div class="g-wrap">
+    <div class="g-kicker">OPENHARMONY-7.0-RELEASE · 选修课 · 3–5 人小组 · 子系统深度分析</div>
+    <h1>课程报告要求 · AI 智能体协作版</h1>
+    <div class="g-type"><span id="typed"></span><span class="g-cursor"></span></div>
+    <div class="g-meta">
+      <span>基线 OpenHarmony-7.0-Release</span>
+      <span>成果 = 分析报告 + 锚点证据仓库</span>
+      <span>课程报告占 20 分 · 报告内 100 分制折算</span>
+    </div>
+    <a class="g-demo-link" href="demo_telephony.html" target="_blank" rel="noopener">📐 查看示范材料：电话子系统深度分析 ↗</a>
+  </div>
+  <div class="g-wave"></div>
+</div>
+
+<div class="g-wrap">
+
+<!-- ================= 0 why AI ================= -->
+<section id="s0">
+  <h2 class="g-sec g-reveal"><span class="g-no">0</span>为什么这门课鼓励你用 AI 智能体</h2>
+  <p class="g-lead g-reveal g-d1">大模型读代码、画图、归纳的能力已经超过多数初学者。但本课程的对 AI 的立场是：</p>
+  <div class="g-grid3">
+    <div class="g-card g-reveal g-d1">
+      <h3><span class="g-emo" style="background:var(--teal-bg)">🔓</span>禁止 AI 是浪费</h3>
+      <p class="g-big">用智能体追调用链、解释目录职责、生成图初稿——这些它做得比人快。</p>
+    </div>
+    <div class="g-card g-reveal g-d2">
+      <h3><span class="g-emo" style="background:var(--red-bg)">⚠️</span>全信 AI 是危险</h3>
+      <p class="g-big">实测第三方 AI 生成的架构文档会把调用链<b>错配到毫不相干的文件</b>，而且看起来完全合理。</p>
+    </div>
+    <div class="g-card g-reveal g-d3">
+      <h3><span class="g-emo" style="background:var(--blue-bg)">🎯</span>考核的是判断力</h3>
+      <p class="g-big">不是"你能不能生成漂亮文档"（AI 三分钟），而是<b>你能不能带着证据驾驭 AI 的产出</b>。</p>
+    </div>
+  </div>
+  <div class="g-card g-reveal g-d3" style="margin-top:16px;border-left:4px solid var(--blue)">
+    <p style="font-size:15px"><b>核心规则：</b>AI 负责「产出」，你们负责「证伪」。每一条写进报告的技术结论，都必须由你们自己回到源码验证，挂上 <span class="g-tag">文件:行号#符号</span> 锚点。<b>锚点对不上 = 结论不成立。</b></p>
+  </div>
+</section>
+
+<!-- ================= 1 six parts ================= -->
+<section id="s1">
+  <h2 class="g-sec g-reveal"><span class="g-no">1</span>报告内容：六部分，缺一不可</h2>
+  <p class="g-lead g-reveal g-d1">滚动查看——建议按此顺序推进，前一部分是后一部分的地基。</p>
+  <div class="g-tl">
+    <div class="g-tl-item g-reveal">
+      <h3>子系统定位与边界<span class="g-pg">约 2 页</span></h3>
+      <p>子系统在全景中的位置（哪些仓、装进哪些 SA 进程）；用 <span class="g-tag">bundle.json</span> 与 <span class="g-tag">subsystem_config.json</span> 证明部件归属；与上下游的依赖关系，画出<b>边界图</b>。</p>
+    </div>
+    <div class="g-tl-item g-reveal">
+      <h3>总体架构<span class="g-pg">约 3 页</span></h3>
+      <p>分层结构与目录职责（<span class="g-tag">frameworks/ services/ interfaces/</span> 各放什么）；<b>目录即进程边界</b>——哪些代码跑在哪个进程、进程间怎么通信（IPC proxy/stub）；SA 注册方式。</p>
+    </div>
+    <div class="g-tl-item g-reveal">
+      <h3>类图与协作图<span class="g-pg">约 4 页</span><span class="g-must">报告核心</span></h3>
+      <p><b>类图</b>：核心继承体系与聚合关系，每个类标注定义锚点。<b>协作图/时序图</b>：至少一条端到端业务链路（应用 API → IPC → HDI），每一跳给锚点。推荐 mermaid，可机读可版本化。</p>
+    </div>
+    <div class="g-tl-item g-reveal">
+      <h3>核心设计算法与机制<span class="g-pg">约 4 页</span></h3>
+      <p>至少深挖 <b>3 个机制</b>：请求-响应关联、状态同步、分发/路由策略、并发保护……每个机制必须回答三问：<b>解决什么问题？怎么解决（锚点）？代价是什么？</b></p>
+    </div>
+    <div class="g-tl-item g-reveal">
+      <h3>设计利弊分析<span class="g-pg">约 3 页</span></h3>
+      <p>至少 3 条利 + 3 条弊，<b>每条落到代码证据</b>，不接受"高内聚低耦合"这类空话。鼓励记录追链路时被误导、走弯路的真实经历——这是"证伪 AI"最有价值的素材。</p>
+    </div>
+    <div class="g-tl-item g-reveal">
+      <h3>AI 协作纪实<span class="g-pg">约 2 页</span><span class="g-must">必填特色题</span></h3>
+      <p>工作流（什么智能体、什么提示策略、怎么分工）；<b>纠错清单</b>（AI 错在哪、你们如何发现）；方法论沉淀。<b>纠错清单是得分项不是扣分项</b>——诚实的"AI 骗了我们三次"比零错误的完美报告得分更高。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2 anchor lab ================= -->
+<section id="s2">
+  <h2 class="g-sec g-reveal"><span class="g-no">2</span>锚点规范：亲手试一次校验</h2>
+  <p class="g-lead g-reveal g-d1">格式：<span class="g-tag">路径/文件名.cpp:行号#符号名</span>，路径相对子系统切片根；跨仓子系统可带仓名前缀。<b>锚点是版本敏感的</b>——全组统一 7.0-Release，报告首页注明版本。下面用电话子系统的真实数据演示校验器怎么判：<b>点一个锚点试试</b>。</p>
+  <div class="g-lab g-reveal g-d2">
+    <div class="g-lab-head">
+      <span class="g-dot" style="background:#f26d6d"></span><span class="g-dot" style="background:#f2c94c"></span><span class="g-dot" style="background:#6dd18f"></span>
+      <span style="margin-left:8px">oh_verify.py — 锚点校验演示（电话子系统切片 · 7.0-Release 实测数据）</span>
+    </div>
+    <div class="g-lab-body">
+      <div class="g-pills" id="pills">
+        <button class="g-pill g-on" data-k="good">cs_control.cpp:33#CSControl::Dial</button>
+        <button class="g-pill" data-k="line">cellular_call_service.h:398#abilityMap_</button>
+        <button class="g-pill" data-k="sym">cs_control.cpp:33#IMSControl::Dial</button>
+        <button class="g-pill" data-k="nofile">foo/bar/telephony_x.cpp:88#Dial</button>
+      </div>
+      <div class="g-checks" id="checks"></div>
+      <div class="g-verdict" id="verdict"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3 AI flip cards ================= -->
+<section id="s3">
+  <h2 class="g-sec g-reveal"><span class="g-no">3</span>AI 纠错实录：翻卡看真相</h2>
+  <p class="g-lead g-reveal g-d1">以下三例来自<a class="g-inl" href="demo_telephony.html" target="_blank" rel="noopener">电话子系统示范材料</a>的真实验证过程——AI 的说法（正面）vs 源码锚点证伪后的真相（背面）。<b>点击卡片翻转。</b>你们的报告也要产出这样的对照。</p>
+  <div class="g-flips">
+    <div class="g-flip g-reveal g-d1">
+      <div class="g-inner">
+        <div class="g-face g-front">
+          <span class="g-ai-mark">🤖 AI 的说法</span>
+          <div class="g-claim">"cellular_call 与 core_service 之间走 IPC 跨进程调用"</div>
+          <p style="font-size:13px;color:var(--sub)">理由：它们是两个独立 SA，"看上去"自然该走 IPC。</p>
+          <div class="g-hint">👆 点击翻面看源码证据</div>
+        </div>
+        <div class="g-face g-back">
+          <span class="g-ai-mark" style="background:rgba(255,255,255,.14);color:#8fc1ec">✅ 锚点证伪</span>
+          <div class="g-truth">实际是<b>进程内单例直调</b>：<code>cellular_call_connection_cs.cpp:86</code> 直接调 <code>CoreManagerInner::GetInstance().Answer(...)</code>，没有任何 proxy/stub。<br><br><b>教训：SA 相邻 ≠ IPC 相邻，边界必须靠锚点定。</b></div>
+          <div class="g-hint">👆 再点翻回</div>
+        </div>
+      </div>
+    </div>
+    <div class="g-flip g-reveal g-d2">
+      <div class="g-inner">
+        <div class="g-face g-front">
+          <span class="g-ai-mark">🤖 AI 的说法</span>
+          <div class="g-claim">"CSControl::Dial 按 SIM 卡运营商决定走 GSM 还是 CDMA 分支"</div>
+          <p style="font-size:13px;color:var(--sub)">听起来合理——运营商确实与制式相关。</p>
+          <div class="g-hint">👆 点击翻面看源码证据</div>
+        </div>
+        <div class="g-face g-back">
+          <span class="g-ai-mark" style="background:rgba(255,255,255,.14);color:#8fc1ec">✅ 锚点证伪</span>
+          <div class="g-truth">判据是<b>当前网络制式</b>，不是运营商：<code>cs_control.cpp:50-56</code> 用 <code>GetNetworkStatus()</code> 返回的 <code>PHONE_TYPE_IS_GSM / PHONE_TYPE_IS_CDMA</code> 分支。<br><br><b>教训：AI 会把"相关概念"当"真实判据"，必须读分支条件原文。</b></div>
+          <div class="g-hint">👆 再点翻回</div>
+        </div>
+      </div>
+    </div>
+    <div class="g-flip g-reveal g-d3">
+      <div class="g-inner">
+        <div class="g-face g-front">
+          <span class="g-ai-mark">🤖 AI 的说法</span>
+          <div class="g-claim">"接听电话就是调 Answer 接口，一条直线到 RIL"</div>
+          <p style="font-size:13px;color:var(--sub)">时序图初稿确实画成了直线。</p>
+          <div class="g-hint">👆 点击翻面看源码证据</div>
+        </div>
+        <div class="g-face g-back">
+          <span class="g-ai-mark" style="background:rgba(255,255,255,.14);color:#8fc1ec">✅ 锚点证伪</span>
+          <div class="g-truth">漏掉了<b>三方通话分支</b>：已有活跃通话时接听要先保持当前通话——<code>cs_control.cpp:240-260</code>（注释含 3GPP <code>&lt;stat&gt;</code> 状态表 0–5）先 <code>SwitchCallRequest</code> 再 <code>AnswerRequest</code>。<br><br><b>教训：AI 画的是"主路径"，边界分支要自己挖。</b></div>
+          <div class="g-hint">👆 再点翻回</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 4 dial chain ================= -->
+<section id="s4">
+  <h2 class="g-sec g-reveal"><span class="g-no">4</span>示范：一次拨号穿过几层？</h2>
+  <p class="g-lead g-reveal g-d1"><a class="g-inl" href="demo_telephony.html" target="_blank" rel="noopener">电话子系统示范材料</a>给出的答案：<b>13 跳、3 次进程边界</b>（call_manager → cellular_call 走 IPC；→ core_service 是单例直调；→ ril_adapter 走 HDI）。<b>点「模拟一次拨号」</b>，看请求怎么一层层沉到基带。每一跳右侧就是你们报告要挂的那种锚点。</p>
+  <div class="g-chainbox g-reveal g-d2">
+    <div class="g-chain-ctl">
+      <button class="g-btn" id="dialBtn">📞 模拟一次拨号</button>
+      <button class="g-btn g-ghost" id="resetBtn" disabled>重置</button>
+      <span class="g-chain-stat" id="chainStat">等待发起…</span>
+    </div>
+    <ul class="g-chain" id="chain"></ul>
+    <div class="g-atd-pop" id="atdPop">ATD10086;<br><span class="g-ok">✓ 请求已到达基带 Modem —— 全链 13 跳，用时 &lt; 1 人日（AI 协作 + 锚点验证）</span></div>
+  </div>
+</section>
+
+<!-- ================= 5 workflow ================= -->
+<section id="s5">
+  <h2 class="g-sec g-reveal"><span class="g-no">5</span>推荐工作流：五步流水线</h2>
+  <p class="g-lead g-reveal g-d1">分工建议：链路员 ×1–2（追链路出锚点）、验证员 ×1（跑校验、维护纠错清单）、综合员 ×1（成文画图），全员参与利弊讨论与答辩。流程动画会自动播放一次，鼠标悬停可单独点亮。</p>
+  <div class="g-pipe" id="pipe">
+    <div class="g-step"><div class="g-n">STEP 1</div><h4>切片先行</h4><p>oh_slice.py 拉子系统仓，G1 体检 ≤10MB / ≤500 文件</p></div>
+    <div class="g-step"><div class="g-n">STEP 2</div><h4>人追骨架</h4><p>自己用 oh_trace.py 追通主链路，建立"地图感"</p></div>
+    <div class="g-step"><div class="g-n">STEP 3</div><h4>AI 填肉</h4><p>智能体解释文件职责、生成 mermaid 图初稿</p></div>
+    <div class="g-step"><div class="g-n">STEP 4</div><h4>人验锚点</h4><p>逐条核对 文件:行号#符号，记录 AI 每一次错误</p></div>
+    <div class="g-step"><div class="g-n">STEP 5</div><h4>成文交付</h4><p>oh_verify.py 批跑 0 FAIL 才提交</p></div>
+  </div>
+</section>
+
+<!-- ================= 6 rubric ================= -->
+<section id="s6">
+  <h2 class="g-sec g-reveal"><span class="g-no">6</span>评分 Rubric（100 分）</h2>
+  <p class="g-lead g-reveal g-d1">进入视口后权重条自动生长。注意：AI 协作纪实单项 15 分，与"类图协作图"等重——这门课把<b>驾驭 AI 的过程</b>当作一级能力考核。</p>
+  <div class="g-rubric g-reveal g-d2" id="rubric">
+    <div class="g-rrow" data-v="15"><div class="g-dim">架构与边界<small>边界图准确 · 进程归属清楚</small></div><div class="g-bar"><i></i></div><div class="g-sc">15</div></div>
+    <div class="g-rrow" data-v="20"><div class="g-dim">类图与协作图<small>端到端链路 · 每跳真锚点</small></div><div class="g-bar"><i></i></div><div class="g-sc">20</div></div>
+    <div class="g-rrow" data-v="20"><div class="g-dim">核心机制<small>≥3 个机制 · 问题-方案-代价</small></div><div class="g-bar"><i></i></div><div class="g-sc">20</div></div>
+    <div class="g-rrow" data-v="15"><div class="g-dim">利弊分析<small>每条有代码证据 · 敢下结论</small></div><div class="g-bar"><i></i></div><div class="g-sc">15</div></div>
+    <div class="g-rrow" data-v="15"><div class="g-dim">AI 协作纪实<small>纠错清单可复现 · 方法论可迁移</small></div><div class="g-bar"><i></i></div><div class="g-sc">15</div></div>
+    <div class="g-rrow" data-v="10"><div class="g-dim">锚点质量<small>校验器 0 FAIL · 跨 ≥3 目录</small></div><div class="g-bar"><i></i></div><div class="g-sc">10</div></div>
+    <div class="g-rrow" data-v="5"><div class="g-dim">答辩<small>随机抽问 · 能讲清任意一跳</small></div><div class="g-bar"><i></i></div><div class="g-sc">5</div></div>
+    <div class="g-rline-total"><span>红线另计</span><span>锚点伪造 → 零分 · 纪实造假 → 该部分零分并全组警告</span></div>
+  </div>
+  <div class="g-card g-reveal g-d2" style="margin-top:16px">
+    <p style="margin-bottom:6px"><b>证据分级（客观刻度，<code>oh_level.py</code> 可机判）：</b></p>
+    <ul style="font-size:13.5px;color:var(--gg-sub);padding-left:18px;line-height:1.9">
+      <li><b>L0 定位</b>：≥3 个有效锚点、覆盖 ≥2 个不同文件、0 失败——只算「找到并锁定」，范例文档即 L0。</li>
+      <li><b>L1 结构</b>：L0 + 含 mermaid 图 + 锚点跨 ≥2 个顶层目录——画出可信的模块与调用关系。</li>
+      <li><b>L2 复现</b>：L1 + 日志/观测标记 + ≥1 个带 <code>#符号</code> 的锚点——用现成日志复现已知行为。</li>
+      <li><b>L3 / L4（研究型加分，需人审）</b>：L2 之上再补 diff / 构建证据（L3）、baseline + 可重复（L4）；脚本只能启发式提示，<b>不算硬分</b>。</li>
+    </ul>
+    <p style="margin-top:8px">口径说明：本课程「课程报告」在总分里占 <b>20 分</b>，本节 100 分 Rubric 是报告内部的折算刻度；L0–L2 是另一维度的「证据是否扎实」客观检查，两者互补、不重复计分。</p>
+  </div>
+</section>
+
+<!-- ================= 7 subsystems (100) ================= -->
+<section id="s7">
+  <h2 class="g-sec g-reveal"><span class="g-no">7</span>可选子系统：100 项，先到先得</h2>
+  <p class="g-lead g-reveal g-d1">全部为 OpenHarmony-7.0-Release manifest 真实仓（525 仓中精选 100）。点击卡片加入「本组意向」；<b>支持按类筛选与关键词搜索</b>（仓号 / 中文名 / 链路均可）。⚠ 表示仓大需定向切片。电话子系统已有示范，不占名额。</p>
+  <div class="g-subbar g-reveal g-d1">
+    <input id="subSearch" class="g-subsearch" type="text" placeholder="🔍 搜索：仓库名 / 中文名 / 建议链路，如 hilog、内核、一次拍照…">
+    <div class="g-subcount"><b id="subShown">100</b> / 100</div>
+  </div>
+  <div class="g-cathorizontal g-reveal g-d1" id="catBar"></div>
+  <div class="g-subgrid" id="subs"></div>
+  <div class="g-pickbar" id="pickBar">
+    <span class="g-pk-l">📌 本组意向（仅本页演示，正式认领以课程平台为准）：</span>
+    <span class="g-pk-items" id="pickList">未选择</span>
+    <button class="g-pk-clear" id="pickClear">清空</button>
+  </div>
+</section>
+
+<!-- ================= 8 deliverables + redline ================= -->
+<section id="s8">
+  <h2 class="g-sec g-reveal"><span class="g-no">8</span>提交物与红线</h2>
+  <ul class="g-dels g-reveal g-d1">
+    <li>📄 <span><code>report.md</code>（或 PDF）——六部分结构，锚点内嵌</span></li>
+    <li>🧷 <span><code>anchors.md</code> ——锚点清单（供校验器批跑）</span></li>
+    <li>🗂️ <span><code>repo/</code> ——证据仓库：切片 diff、mermaid 源文件、校验器 0 FAIL 输出</span></li>
+    <li>🤖 <span><code>ai-log.md</code> ——AI 协作原始记录（提示词 · 回答摘录 · 纠错对照）</span></li>
+    <li>🪪 <span><code>meta.json</code> ——组信息（组号 · 子系统 · 成员 · tag），缺了无法核对版本</span></li>
+    <li>🎞️ <span><code>slides.pdf</code> ——汇报 PPT（另附 <code>.pptx</code> 源文件）</span></li>
+    <li>✍️ <span>组内贡献声明（谁做了什么，签名式确认）</span></li>
+    <li>⏰ <span>截止：第 4 个全天课程结束前提交电子版；答辩当天随机抽 1–2 人讲链路</span></li>
+  </ul>
+  <div style="height:12px"></div>
+  <div class="g-card g-reveal g-d1">
+    <p style="margin-bottom:8px"><b><code>meta.json</code> 模板：</b></p>
+    <pre style="font-family:var(--gg-mono);font-size:12.5px;color:var(--gg-sub);background:var(--gg-bg);border:1px solid var(--gg-line);border-radius:8px;padding:10px 14px;overflow:auto">{ "group": "G12", "subsystem": "窗口管理", "members": ["张三","李四","王五"], "tag": "OpenHarmony-7.0-Release" }</pre>
+    <p style="margin-top:10px">组号、子系统名、成员、tag 用于自动核对版本与归属；<b>缺了这份文件，教师侧无法把你交的东西和「谁认领了哪个子系统」对上</b>。</p>
+  </div>
+  <div style="height:12px"></div>
+  <div class="g-card g-reveal g-d2">
+    <p style="margin-bottom:6px"><b>🎞️ 汇报 PPT：8 分钟 · 12–15 页</b>（报告是<b>可核查的证据</b>，PPT 是<b>讲得清的叙事</b>——不是把报告搬上屏幕）</p>
+    <ul style="font-size:13.5px;color:var(--gg-sub);padding-left:18px;line-height:1.9">
+      <li>必讲 12 页 + 备用页：封面 → 一句话说清设计（配全景图）→ 边界（目录→进程→SA）→ 端到端链路（时序图，标 IPC/HDI）→ 核心机制 ×3（问题-方案-代价）→ 利弊（各 ≥3，带证据）→ <b>最精彩的一次 AI 纠错</b> → 证据与复现（锚点数 / 0 FAIL / 一条能跑的命令）→ 分工与延伸 → 备用页（锚点清单 + 预判的 5 个问题）。</li>
+      <li>硬规则：6 分钟讲 + 2 分钟问，超时打断；一页只讲一件事、正文 ≤ 6 行；图上关键节点标锚点；数字必须来自报告、抽问会对账；现场演示一次校验跑出 0 FAIL（别用截图代替）。</li>
+      <li>交 <code>slides.pdf</code> + <code>.pptx</code> 源文件。<b>缺 PPT / 未按时交 / 汇报缺席 → 该组答辩记 0 分。</b></li>
+    </ul>
+  </div>
+  <div style="height:16px"></div>
+  <div class="g-redbox g-reveal g-d2">
+    <span class="g-pulse"></span>
+    <div>
+      <p><b>学术红线（开班第一页已明示）：</b></p>
+      <p style="margin-top:4px">锚点伪造（文件 / 行号 / 符号对不上）= 报告<b>零分</b>；AI 纪实造假（编造不存在的纠错过程）= 该部分零分并全组警告。允许用 AI 辅助阅读，但每个结论必须自己回源码验证——这正是锚点制的用意。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 9 FAQ ================= -->
+<section id="s9">
+  <h2 class="g-sec g-reveal"><span class="g-no">9</span>常见坑（来自学生工具包）</h2>
+  <div class="g-card g-reveal g-d1">
+    <ul style="font-size:13.5px;color:var(--gg-sub);padding-left:18px;line-height:1.9">
+      <li><b>解压别用 Git Bash 的 <code>unzip</code></b>：会把切片里那张中文名 PNG 写成乱码名。包本身是好的、不影响锚点校验，但 <code>git status</code> 会多一条记录。请用系统自带工具（Windows 资源管理器 / macOS 归档工具 / 7-Zip）解压。</li>
+      <li><b>上传 Git 时注意 <code>.git</code> 嵌套</b>：切片目录里保留了浅克隆的 <code>.git</code>（用于核验快照版本）。把整个包放进作业仓库再 <code>git add .</code>，Git 会把切片当成 submodule，别人 clone 下来是两个空目录。要么 <code>find slices -name .git -type d -prune -exec rm -rf {} +</code>，要么写进 <code>.gitignore</code>。</li>
+      <li><b>不要 <code>git pull</code> 切片</b>：拉取会让工作区离开快照、行号漂移，全组基线就失效了。要换版本请重新 <code>oh_slice.py --fetch</code> 到新目录。</li>
+      <li><b>交付物不用带切片副本</b>：批改只认 <code>report.md / anchors.md / meta.json / slides.pdf</code>，一个 6MB 的切片副本对判定没有帮助。</li>
+      <li><b>Windows 中文乱码</b>：终端执行 <code>chcp 65001</code>；报告文件保存为 UTF-8。</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <span>《开源鸿蒙操作系统开发实践》选修课 · 课程报告要求 · AI 智能体协作版</span>
+  <span>基线 OpenHarmony-7.0-Release · gitcode.com/openharmony · 本页可离线打开</span>
+</footer>
+
+</div><!-- /wrap -->
+
+
+</div>
+<script>
+/* 交互指南脚本（scoped） */
+(function(){
+
+/* ============ typing ============ */
+(function(){
+  var full="> AI 负责产出，你们负责证伪。每个结论挂 文件:行号#符号 锚点，锚点对不上 = 结论不成立。";
+  var el=document.getElementById('typed');var i=0;
+  var t=setInterval(function(){
+    el.textContent=full.slice(0,++i);
+    if(i>=full.length){clearInterval(t);}
+  },55);
+})();
+
+/* ============ reveal on scroll ============ */
+(function(){
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('g-in');io.unobserve(e.target);}});
+  },{threshold:.12});
+  document.querySelectorAll('.g-reveal').forEach(function(el){io.observe(el);});
+})();
+
+/* ============ anchor lab ============ */
+(function(){
+  var DATA={
+    good:{lines:[
+      ["g-ok","文件存在","services/control/src/cs_control.cpp（cellular_call 切片内，198+ 源文件之一）"],
+      ["g-ok","行号有效","第 33 行在文件范围内"],
+      ["g-ok","符号命中","CSControl::Dial 出现在 :33 附近 ±5 行内（签名 int32_t CSControl::Dial(...)）"]
+    ],v:"✓ 0 FAIL —— 该锚点可写进报告",cls:"g-good"},
+    line:{lines:[
+      ["g-ok","文件存在","services/manager/include/cellular_call_service.h"],
+      ["g-bad","行号越界","锚点写 398，但 7.0-Release 里该文件共 198 行 —— 398 是 6.1-LTS 的旧行号"],
+      ["none","符号校验跳过","行号已失效，后续校验无意义"]
+    ],v:"✗ FAIL —— 版本漂移：锚点必须随版本重追（6.1 → 7.0 该文件缩了一半）",cls:"g-bad"},
+    sym:{lines:[
+      ["g-ok","文件存在","services/control/src/cs_control.cpp"],
+      ["g-ok","行号有效","第 33 行在文件范围内"],
+      ["g-bad","符号未命中","IMSControl::Dial 未出现在 :33 附近 —— 该行定义的是 CSControl::Dial（IMS 的 Dial 在 ims_control.cpp:36）。同名函数 9 个，限定名必须精确"]
+    ],v:"✗ FAIL —— 符号错配：AI 最典型的幻觉之一，正是锚点制要拦的东西",cls:"g-bad"},
+    nofile:{lines:[
+      ["g-bad","文件不存在","foo/bar/telephony_x.cpp 在任何切片根下都找不到（候选建议：无）"],
+      ["none","行号校验跳过",""],
+      ["none","符号校验跳过",""]
+    ],v:"✗ FAIL —— 路径编造。真校验器还会按 basename 反查给出候选路径",cls:"g-bad"}
+  };
+  var checks=document.getElementById('checks');
+  var verdict=document.getElementById('verdict');
+  var cur='good';
+  function run(key){
+    cur=key;
+    checks.innerHTML='';verdict.className='g-verdict';
+    var d=DATA[key];
+    // 第一行：正在解析（转圈）
+    var p=document.createElement('div');
+    p.className='g-checkline g-show';
+    p.innerHTML='<span class="g-st"><span class="g-spin"></span></span><span class="g-tx">解析锚点格式 path:line#symbol …</span>';
+    checks.appendChild(p);
+    d.lines.forEach(function(ln,idx){
+      var el=document.createElement('div');
+      el.className='g-checkline '+(ln[0]==='none'?'':ln[0]);
+      el.innerHTML='<span class="g-st">'+(ln[0]==='g-ok'?'✓':ln[0]==='g-bad'?'✗':'–')+'</span><span class="g-tx"><b>'+ln[1]+'</b>'+(ln[2]?' — '+ln[2]:'')+'</span>';
+      checks.appendChild(el);
+      setTimeout(function(){el.classList.add('g-show');},420+idx*520);
+    });
+    setTimeout(function(){
+      p.remove();
+      verdict.textContent=d.v;verdict.className='g-verdict g-show '+d.cls;
+    },420+d.lines.length*520+150);
+  }
+  document.getElementById('pills').addEventListener('click',function(e){
+    var b=e.target.closest('.g-pill');if(!b)return;
+    document.querySelectorAll('.g-pill').forEach(function(p){p.classList.toggle('g-on',p===b);});
+    run(b.dataset.k);
+  });
+  run('good');
+})();
+
+/* ============ flip cards ============ */
+document.querySelectorAll('.g-flip').forEach(function(f){
+  f.addEventListener('click',function(){f.classList.toggle('g-flipped');});
+});
+
+/* ============ dial chain ============ */
+(function(){
+  var HOPS=[
+    ["拨号应用","ArkTS API · call_manager"],
+    ["CellularCallProxy::Dial","cellular_call_proxy.cpp:35"],
+    ["IPC 边界 ✦","SendRequest(CellularCallInterfaceCode::DIAL)"],
+    ["CellularCallStub::OnDialInner","cellular_call_stub.cpp:83 → :227"],
+    ["CellularCallService::Dial","cellular_call_service.cpp:350 · 三域分发"],
+    ["卫星 / IMS 判定","DialNormalCall :386 · 卫星>IMS>CS"],
+    ["CSControl::Dial","cs_control.cpp:33 · 网络&制式判定"],
+    ["EncapsulateDialCommon","cs_control.cpp:128 · CLIR/号码组装"],
+    ["CoreManagerInner::Dial","core_manager_inner.cpp:840 · 单例直调（非 IPC）"],
+    ["TelRilManager → TelRilCall","tel_ril_call.cpp:349"],
+    ["HDI 边界 ✦","HDI::Ril::V1_1::IRil::Dial"],
+    ["HRilManager::TaskSchedule","hril_manager.cpp:110 · 全局互斥"],
+    ["HRilCall::Dial → vendor","hril_call.cpp:203 · HREQ_CALL_DIAL → ATD"]
+  ];
+  var list=document.getElementById('chain');
+  var btn=document.getElementById('dialBtn'),rst=document.getElementById('resetBtn');
+  var stat=document.getElementById('chainStat'),pop=document.getElementById('atdPop');
+  var timers=[];
+  HOPS.forEach(function(h,i){
+    var li=document.createElement('li');
+    li.className='g-hop';
+    li.innerHTML='<span class="g-nd">'+(i+1)+'</span><span class="g-lb">'+h[0]+'</span><span class="g-anch">'+h[1]+'</span>';
+    list.appendChild(li);
+  });
+  function reset(){
+    timers.forEach(clearTimeout);timers=[];
+    document.querySelectorAll('.g-hop').forEach(function(h){h.classList.remove('g-lit','g-done-flash');});
+    pop.classList.remove('g-show');
+    stat.textContent='等待发起…';
+    btn.disabled=false;rst.disabled=true;
+  }
+  btn.addEventListener('click',function(){
+    reset();btn.disabled=true;rst.disabled=true;
+    var nodes=document.querySelectorAll('.g-hop');
+    stat.innerHTML='请求下潜中… <b id="pc">0</b>/13';
+    var pc=document.getElementById('pc');
+    nodes.forEach(function(n,i){
+      timers.push(setTimeout(function(){
+        n.classList.add('g-lit','g-done-flash');
+        setTimeout(function(){n.classList.remove('g-done-flash');},500);
+        pc.textContent=i+1;
+        if(i===nodes.length-1){
+          timers.push(setTimeout(function(){
+            pop.classList.add('g-show');
+            stat.innerHTML='完成：<b>13 跳 · 3 次进程边界（✦）</b> · 全链锚点已验证 0 FAIL';
+            rst.disabled=false;
+          },420));
+        }
+      },300+i*430));
+    });
+  });
+  rst.addEventListener('click',reset);
+})();
+
+/* ============ workflow pipe ============ */
+(function(){
+  var pipe=document.getElementById('pipe');
+  var steps=pipe.querySelectorAll('.g-step');
+  var started=false;
+  function play(){
+    steps.forEach(function(s){s.classList.remove('g-lit');});
+    steps.forEach(function(s,i){setTimeout(function(){s.classList.add('g-lit');},i*380);});
+  }
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){if(e.isIntersecting&&!started){started=true;play();}});
+  },{threshold:.35});
+  io.observe(pipe);
+  steps.forEach(function(s){s.addEventListener('mouseenter',function(){s.classList.add('g-lit');});});
+})();
+
+/* ============ rubric bars ============ */
+(function(){
+  var rub=document.getElementById('rubric');
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        rub.querySelectorAll('.g-rrow').forEach(function(r,i){
+          var bar=r.querySelector('.g-bar i');
+          setTimeout(function(){bar.style.width=(r.dataset.v*4.5)+'%';},i*130);
+        });
+        io.unobserve(rub);
+      }
+    });
+  },{threshold:.3});
+  io.observe(rub);
+})();
+
+/* ============ subsystem picker (100, data-driven) ============ */
+var SUBS=[{"c":"内核与驱动","r":"kernel_liteos_m","z":"LiteOS-M 内核","d":"轻量系统内核：任务调度与中断","t":"lite 入门友好","k":"一个任务的创建到调度"},{"c":"内核与驱动","r":"kernel_liteos_a","z":"LiteOS-A 内核","d":"小型系统内核：虚存与进程","t":"核心","k":"一次缺页中断的处理"},{"c":"内核与驱动","r":"kernel_linux_6.6","z":"Linux 6.6 内核适配","d":"标准系统内核 + OH 补丁集","t":"⚠ 硬件","k":"一次 OH 特性补丁的加载"},{"c":"内核与驱动","r":"kernel_linux_common_modules","z":"内核公共模块","d":"Binder/ashmem 等 OH 内核模块","t":"硬件","k":"一次 binder_ioctl 的路径"},{"c":"内核与驱动","r":"drivers_hdf_core","z":"HDF 驱动框架","d":"驱动模型、配置化加载、设备树","t":"核心 硬件","k":"一个驱动的加载链路"},{"c":"内核与驱动","r":"drivers_peripheral","z":"外设驱动集","d":"显示/输入/音频等外设 HAL","t":"硬件","k":"一次触摸上报的路径"},{"c":"内核与驱动","r":"drivers_interface","z":"HDI 接口定义仓","d":"硬件抽象接口 IDL 集合","t":"硬件 入门友好","k":"一个 HDI 接口从 IDL 到桩"},{"c":"系统框架","r":"startup_init","z":"init 与启动","d":"服务配置解析、按需启动","t":"核心 ⚠ 只切 src/init","k":"一个服务的启动配置生效"},{"c":"系统框架","r":"systemabilitymgr_samgr","z":"samgr 服务管理","d":"SA 注册/发现/按需加载","t":"核心 入门推荐","k":"一次 AddSystemAbility 注册"},{"c":"系统框架","r":"systemabilitymgr_safwk","z":"safwk SA 框架","d":"SA 进程运行时框架","t":"核心","k":"SA 进程 OnStart 全流程"},{"c":"系统框架","r":"ability_ability_runtime","z":"Ability 运行时","d":"UIAbility 生命周期、Want","t":"核心","k":"一次 startAbility 的旅程"},{"c":"系统框架","r":"ability_ability_base","z":"Ability 基础库","d":"Want/能力基类","t":"lite 入门友好","k":"Want 序列化与传递"},{"c":"系统框架","r":"ability_form_fwk","z":"卡片框架","d":"FormExtensionAbility 卡片","t":"应用","k":"一张卡片的刷新链路"},{"c":"系统框架","r":"ability_dmsfwk","z":"分布式调用框架","d":"跨设备 Mission/继续流转","t":"核心","k":"一次跨设备迁移"},{"c":"系统框架","r":"arkui_ace_engine","z":"ArkUI ACE 引擎","d":"声明式 UI 渲染管线","t":"核心 ⚠ 仓大","k":"一帧从状态变化到上屏"},{"c":"系统框架","r":"arkui_napi","z":"NAPI 桥","d":"ArkTS↔C++ 互操作","t":"核心 入门友好","k":"一次 napi 调用的值转换"},{"c":"系统框架","r":"bundlemanager_bundle_framework","z":"包管理框架","d":"安装/卸载/查询/签名校验","t":"核心","k":"一个 HAP 的安装链路"},{"c":"系统框架","r":"commonlibrary_c_utils","z":"C++ 公共基础库","d":"容器/线程/日志基元","t":"lite 入门推荐","k":"一个 RefPtr 的生命周期"},{"c":"图形与窗口","r":"graphic_graphic_2d","z":"图形 2D 合成","d":"RenderService/WMS 图形栈","t":"核心 ⚠","k":"一个窗口的合成上屏"},{"c":"图形与窗口","r":"graphic_surface_lite","z":"Surface lite","d":"轻量图形缓冲队列","t":"lite","k":"一帧缓冲的流转"},{"c":"图形与窗口","r":"window_window_manager","z":"窗口管理","d":"窗口树/焦点/输入法窗口","t":"核心","k":"一次焦点切换仲裁"},{"c":"图形与窗口","r":"arkui_ui_appearance","z":"UI 外观管理","d":"深色模式/屏保","t":"应用","k":"一次深色模式切换广播"},{"c":"图形与窗口","r":"graphic_graphics_effect","z":"图形特效","d":"模糊/滤镜效果引擎","t":"⚠","k":"一次实时模糊渲染"},{"c":"多媒体","r":"multimedia_audio_framework","z":"音频框架","d":"策略/路由/焦点管理","t":"核心","k":"一次音频焦点抢占"},{"c":"多媒体","r":"multimedia_camera_framework","z":"相机框架","d":"预览/拍照/录像状态机","t":"核心","k":"一次拍照从应用到 HAL"},{"c":"多媒体","r":"multimedia_player_framework","z":"播放器框架","d":"AVPlayer 编排","t":"核心","k":"一次 seek 的全链路"},{"c":"多媒体","r":"multimedia_media_library","z":"媒体库","d":"相册/元数据/缩略图","t":"核心","k":"一张照片的入库"},{"c":"多媒体","r":"multimedia_image_framework","z":"图片框架","d":"解码管线与 ImageSource","t":"核心","k":"一张 JPEG 的解码"},{"c":"多媒体","r":"multimedia_av_codec","z":"编解码","d":"软硬编解码统一接口","t":"核心 硬件","k":"硬解失败回落软解"},{"c":"多媒体","r":"multimedia_av_session","z":"媒体会话","d":"后台播放/投播控制","t":"应用","k":"一次播控中心联动"},{"c":"文件与存储","r":"filemanagement_storage_service","z":"存储服务","d":"分区/加密/空间管理","t":"核心 硬件","k":"一次用户数据挂载"},{"c":"文件与存储","r":"filemanagement_file_api","z":"文件 API 层","d":"JS/Native 文件接口","t":"入门友好","k":"一次异步读的线程池"},{"c":"文件与存储","r":"filemanagement_user_file_service","z":"用户文件框架","d":"文件访问框架与授权","t":"核心","k":"一次跨应用文件访问"},{"c":"文件与存储","r":"filemanagement_dfs_service","z":"分布式文件","d":"跨设备文件系统","t":"核心 ⚠","k":"一次远程文件打开"},{"c":"文件与存储","r":"filemanagement_app_file_service","z":"应用文件服务","d":"应用沙箱与备份","t":"核心","k":"一次应用备份导出"},{"c":"网络与通信","r":"communication_wifi","z":"WLAN 服务","d":"连接/扫描/P2P 状态机","t":"核心 硬件","k":"一次热点连接"},{"c":"网络与通信","r":"communication_netmanager_base","z":"网络管理","d":"连接/策略/流量管理","t":"核心","k":"一次网络切换仲裁"},{"c":"网络与通信","r":"communication_netstack","z":"网络协议栈","d":"HTTP/Socket 上层栈","t":"核心 入门友好","k":"一次 HTTP 请求的分层"},{"c":"网络与通信","r":"communication_bluetooth","z":"蓝牙","d":"BR/EDR 与 BLE 协议栈","t":"核心 ⚠ 硬件","k":"一次 BLE 扫描"},{"c":"网络与通信","r":"communication_nfc","z":"NFC","d":"标签读写与卡模拟","t":"硬件","k":"一次碰一碰读取"},{"c":"网络与通信","r":"communication_ipc","z":"IPC/RPC","d":"proxy/stub/驱动 binder","t":"核心 入门推荐","k":"一次 SendRequest 的内核路径"},{"c":"网络与通信","r":"communication_dsoftbus","z":"分布式软总线","d":"发现/组网/传输","t":"核心 ⚠ 仓大","k":"两设备的发现到组网"},{"c":"电话与连接","r":"telephony_sms_mms","z":"短信彩信","d":"收发/分片/报告","t":"入门友好","k":"一条短信的发送"},{"c":"电话与连接","r":"telephony_core_service","z":"核心服务","d":"网络状态/SIM/RIL 代理","t":"核心","k":"一次 SIM 状态读取"},{"c":"电话与连接","r":"telephony_cellular_data","z":"蜂窝数据","d":"数据连接建立与切换","t":"核心","k":"一次上网连接建立"},{"c":"电话与连接","r":"telephony_state_registry","z":"状态注册","d":"状态订阅与分发","t":"lite 入门推荐 0.67MB","k":"一次订阅回调分发"},{"c":"电话与连接","r":"telephony_ril_adapter","z":"RIL 适配","d":"HRil/vendor/AT 适配","t":"核心（示范切片）","k":"一条 AT 命令的一生"},{"c":"分布式","r":"distributedhardware_device_manager","z":"设备管理","d":"认证/信任与设备发现","t":"核心","k":"两台设备的可信绑定"},{"c":"分布式","r":"distributedhardware_distributed_hardware_fwk","z":"分布式硬件框架","d":"硬件能力跨设备虚拟化","t":"核心","k":"一个虚拟摄像头接入"},{"c":"分布式","r":"distributedhardware_distributed_camera","z":"分布式相机","d":"跨设备相机协同","t":"核心","k":"远端取像到本端预览"},{"c":"分布式","r":"distributedhardware_distributed_screen","z":"分布式屏幕","d":"跨屏投射与协作","t":"核心","k":"一次投屏会话建立"},{"c":"分布式","r":"deviceprofile_device_info_manager","z":"设备画像","d":"设备属性分发","t":"lite","k":"一个属性的同步"},{"c":"安全与权限","r":"security_access_token","z":"访问控制","d":"AT/权限管理","t":"核心 入门推荐","k":"一次权限校验链路"},{"c":"安全与权限","r":"security_huks","z":"密钥管理 HUKS","d":"密钥生成/导入/使用","t":"核心","k":"一次密钥生成落盘"},{"c":"安全与权限","r":"security_device_auth","z":"设备认证","d":"设备间信任组","t":"核心","k":"可信组建立流程"},{"c":"安全与权限","r":"security_appverify","z":"应用验签","d":"HAP 签名校验","t":"核心","k":"一次安装验签"},{"c":"安全与权限","r":"security_crypto_framework","z":"加密框架","d":"统一加解密接口","t":"入门友好","k":"一次 AES 加密调用"},{"c":"安全与权限","r":"security_asset","z":"资产存储","d":"关键资产隔离存储","t":"新兴","k":"一笔密码的存取"},{"c":"安全与权限","r":"security_dataclassification","z":"数据分级","d":"DLP 与分级防护","t":"新兴","k":"一份文档的 DLP 打标"},{"c":"系统应用","r":"applications_launcher","z":"桌面 Launcher","d":"ArkTS 系统应用","t":"应用 入门友好","k":"一次图标点击到启动"},{"c":"系统应用","r":"applications_settings","z":"设置","d":"系统设置应用","t":"应用","k":"一个开关到系统服务"},{"c":"系统应用","r":"applications_systemui","z":"SystemUI","d":"状态栏/导航/通知面板","t":"应用","k":"一次状态栏刷新"},{"c":"系统应用","r":"applications_screenlock","z":"锁屏","d":"锁屏与亮灭协同","t":"应用","k":"一次解锁流程"},{"c":"系统应用","r":"applications_camera","z":"相机应用","d":"相机系统应用","t":"应用","k":"一次模式切换"},{"c":"系统应用","r":"applications_photos","z":"图库","d":"照片浏览系统应用","t":"应用","k":"一次相册加载"},{"c":"系统应用","r":"applications_filepicker","z":"文件选择器","d":"picker 系统应用","t":"应用 入门友好","k":"一次安全拉起"},{"c":"系统应用","r":"applications_permission_manager","z":"权限管理应用","d":"弹窗与授权记录","t":"应用","k":"一次运行时弹窗"},{"c":"数据与帐户","r":"account_os_account","z":"帐户与多用户","d":"帐户/子用户/域信息","t":"核心","k":"一次子用户创建"},{"c":"数据与帐户","r":"request_request","z":"上传下载","d":"后台传输代理","t":"入门友好","k":"一个大文件断点续传"},{"c":"数据与帐户","r":"time_time_service","z":"时间时区","d":"时间设置与对时","t":"lite","k":"一次 NITZ 对时"},{"c":"数据与帐户","r":"customization_config_policy","z":"配置策略","d":"分层配置合成","t":"lite 入门友好","k":"一次配置依赖合并"},{"c":"资源调度与电源","r":"resourceschedule_resource_schedule_service","z":"资源调度服务","d":"事件通知/亲和调度","t":"核心","k":"一次长时任务申请"},{"c":"资源调度与电源","r":"resourceschedule_memmgr","z":"内存管理","d":"进程分组与回收策略","t":"核心 硬核","k":"一次内存压力回收"},{"c":"资源调度与电源","r":"resourceschedule_background_task_mgr","z":"后台任务","d":"transient 任务/延迟感知","t":"核心","k":"申请常驻的后台链"},{"c":"资源调度与电源","r":"resourceschedule_work_scheduler","z":"工作调度","d":"条件触发延迟任务","t":"入门友好","k":"一次充电条件触发"},{"c":"资源调度与电源","r":"powermgr_power_manager","z":"电源管理","d":"休眠/唤醒/重启","t":"核心 硬件","k":"一次亮屏流程"},{"c":"资源调度与电源","r":"powermgr_display_manager","z":"显示与背光","d":"亮度/超时策略","t":"核心","k":"自动调光的决策"},{"c":"资源调度与电源","r":"powermgr_battery_manager","z":"电池服务","d":"电量/充电状态","t":"核心 硬件","k":"一次充电事件广播"},{"c":"资源调度与电源","r":"powermgr_thermal_manager","z":"热管理","d":"温度等级与降频联动","t":"核心","k":"一次过热降频联动"},{"c":"资源调度与电源","r":"sensors_sensor","z":"传感器","d":"加速度/陀螺等订阅","t":"核心 入门友好","k":"一次传感器订阅"},{"c":"资源调度与电源","r":"inputmethod_imf","z":"输入法框架","d":"IMF 编排与拉起","t":"核心","k":"一次编辑框聚焦弹键盘"},{"c":"AI 与智能化","r":"ai_neural_network_runtime","z":"神经网络运行时","d":"NNRt 南向加速接口","t":"核心 新兴","k":"一次算子编译执行"},{"c":"AI 与智能化","r":"ai_engine","z":"AI 引擎","d":"端侧推理服务化","t":"新兴","k":"一个模型的加载推理"},{"c":"AI 与智能化","r":"ai_intelligent_voice_framework","z":"智能语音","d":"语音助手框架","t":"新兴","k":"一次唤醒词识别"},{"c":"DFX 可观测","r":"hiviewdfx_hilog","z":"hilog 日志","d":"日志分级/落盘/缓冲","t":"入门推荐 0.82MB","k":"一条日志从 printf 到落盘"},{"c":"DFX 可观测","r":"hiviewdfx_hitrace","z":"hitrace","d":"调用链追踪","t":"核心 入门友好","k":"一次 trace 打点上报"},{"c":"DFX 可观测","r":"hiviewdfx_hisysevent","z":"系统事件","d":"埋点事件框架","t":"入门友好","k":"一次打点到 HiView"},{"c":"DFX 可观测","r":"hiviewdfx_hiview","z":"HiView 平台","d":"事件处理/插件流水线","t":"核心","k":"一个故障事件的处理"},{"c":"DFX 可观测","r":"hiviewdfx_faultloggerd","z":"故障日志","d":"CPP 崩溃捕获","t":"硬核","k":"一次 native crash 捕获"},{"c":"DFX 可观测","r":"hiviewdfx_hidumper","z":"hidumper","d":"系统信息导出","t":"工具 入门友好","k":"一次 dump 分发"},{"c":"DFX 可观测","r":"hiviewdfx_hiappevent","z":"应用事件","d":"App 埋点框架","t":"入门友好","k":"一次应用打点"},{"c":"开发工具链","r":"developtools_hdc","z":"hdc 调试桥","d":"设备连接与命令通道","t":"工具 入门推荐","k":"一条 hdc shell 的旅程"},{"c":"开发工具链","r":"developtools_hiperf","z":"hiperf","d":"采样性能剖析","t":"工具 硬核","k":"一次采样会话"},{"c":"开发工具链","r":"developtools_profiler","z":"hiprofiler","d":"多维度联调平台","t":"工具 ⚠","k":"一次内存轨迹抓取"},{"c":"开发工具链","r":"developtools_smartperf_host","z":"SmartPerf","d":"性能分析前端","t":"工具","k":"一帧渲染的火焰图"},{"c":"开发工具链","r":"developtools_ace_ets2bundle","z":"ets 编译器","d":"ArkTS→字节码","t":"工具 硬核","k":"一个组件的编译产物"},{"c":"开发工具链","r":"developtools_hapsigner","z":"签名工具","d":"HAP 签名与验签","t":"工具","k":"一次签名文件生成"},{"c":"开发工具链","r":"testfwk_developer_test","z":"开发自测框架","d":"单测/XTS 用例编写","t":"工具 入门友好","k":"一个用例的执行"},{"c":"开发工具链","r":"testfwk_arkxtest","z":"ArkXTest","d":"UI 自动化测试","t":"工具","k":"一次 UI 断言回放"},{"c":"开发工具链","r":"build","z":"构建系统","d":"GN/Ninja/hb/bundle.json","t":"核心 工具","k":"bundle.json 到镜像"}];
+(function(){
+  var grid=document.getElementById('subs'),catBar=document.getElementById('catBar');
+  var search=document.getElementById('subSearch'),shown=document.getElementById('subShown');
+  var pickList=document.getElementById('pickList'),pickClear=document.getElementById('pickClear');
+  var picked={};
+  var cats=['全部'].concat(Object.keys(SUBS.reduce(function(a,s){a[s.c]=1;return a;},{})));
+  var curCat='全部',curQ='';
+  var counts={};
+  SUBS.forEach(function(s){counts[s.c]=(counts[s.c]||0)+1;});
+  cats.forEach(function(c){
+    var b=document.createElement('button');
+    b.className='g-cchip'+(c==='全部'?' on':'');
+    b.textContent=c+(c==='全部'?'':'');
+    b.innerHTML=c+(c==='全部'?' <span class="g-cnt">'+SUBS.length+'</span>':' <span class="g-cnt">'+counts[c]+'</span>');
+    b.addEventListener('click',function(){
+      curCat=c;
+      catBar.querySelectorAll('.g-cchip').forEach(function(x){x.classList.toggle('g-on',x===b);});
+      render();
+    });
+    catBar.appendChild(b);
+  });
+  function match(s){
+    if(curCat!=='全部'&&s.c!==curCat)return false;
+    if(!curQ)return true;
+    var q=curQ.toLowerCase();
+    return (s.r+' '+s.z+' '+s.d+' '+s.k).toLowerCase().indexOf(q)>=0;
+  }
+  function render(){
+    grid.innerHTML='';
+    var n=0;
+    SUBS.forEach(function(s,i){
+      if(!match(s))return;
+      n++;
+      var d=document.createElement('div');
+      d.className='g-subcard'+(picked[s.r]?' picked':'');
+      d.style.animationDelay=(Math.min(n,20)*18)+'ms';
+      var tgs='';
+      if(s.t.indexOf('⚠')>=0)tgs+='<span class="g-warn">⚠ 定向切片</span> ';
+      if(s.t.indexOf('lite')>=0||s.t.indexOf('入门')>=0)tgs+='<span class="g-lite">入门友好</span>';
+      d.innerHTML='<div class="g-cat">'+s.c+'</div><div class="g-tgs">'+tgs+'</div>'
+        +'<h4>'+s.z+'<span class="g-rn">'+s.r+'</span></h4>'
+        +'<p>'+s.d+'</p>'
+        +'<div class="g-kk">建议链路 · <b>'+s.k+'</b></div>';
+      d.addEventListener('click',function(){
+        picked[s.r]=!picked[s.r];
+        if(!picked[s.r])delete picked[s.r];
+        d.classList.toggle('g-picked',!!picked[s.r]);
+        updPick();
+      });
+      grid.appendChild(d);
+    });
+    shown.textContent=n;
+  }
+  function updPick(){
+    var ks=Object.keys(picked);
+    pickList.textContent=ks.length?ks.join(' · '):'未选择';
+  }
+  search.addEventListener('input',function(){curQ=search.value.trim();render();});
+  pickClear.addEventListener('click',function(){picked={};render();updPick();});
+  render();
+})();
+
+})();
+</script>
+</body>
+</html>

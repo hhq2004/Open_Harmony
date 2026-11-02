@@ -1,0 +1,16 @@
+node_modules/
+dist/
+artifacts/
+temp_*
+.env
+.env.*
+!.env.example
+.codex/
+.idea/
+*.log
+*.p12
+*.pfx
+*.jks
+*.keystore
+# Reference clones are acquired separately; do not accidentally create submodules.
+references/slices/

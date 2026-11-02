@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>课程考核 · 北京理工大学信息技术创新学院</title>
+<script>
+// 登录守卫
+if (!localStorage.getItem('bit_user')) location.replace('login.html');
+</script>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#111a30; --panel2:#0d1528;
+    --txt:#dbe4ff; --dim:#7c8db5; --line:#22304f; --acc:#fbbf24;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    background:radial-gradient(1200px 600px at 20% -10%, #15224a 0%, var(--bg) 55%) fixed;
+    color:var(--txt); min-height:100vh; display:flex; flex-direction:column;
+  }
+  header{
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:14px 22px; background:rgba(11,16,32,.85); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line); position:sticky; top:0; z-index:10;
+  }
+  header .org{color:var(--acc);font-size:17px;font-weight:700;white-space:nowrap;letter-spacing:.5px;}
+  header h1{font-size:18px; font-weight:600;}
+  header .sp{flex:1;}
+  header a.home{
+    color:#7dd3fc; text-decoration:none; font-size:13px;
+    border:1px solid var(--line); padding:5px 12px; border-radius:8px;
+  }
+  header a.home:hover{background:var(--panel);}
+  header #uname{font-size:13px; color:var(--dim);}
+  main{flex:1; max-width:1100px; width:100%; margin:0 auto; padding:26px 20px 70px;}
+
+  /* 课程标题 */
+  .hero{margin-bottom:22px;}
+  .hero .ttl{font-size:26px; font-weight:700; letter-spacing:.5px;}
+  .hero .sub{font-size:13.5px; color:var(--dim); margin-top:8px; line-height:1.7;}
+
+  /* 学年（单学年时只作标题，不渲染成 tab） */
+  .yhead{display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    margin:0 0 20px; padding-bottom:14px; border-bottom:1px solid var(--line);}
+  .yhead h2{font-size:21px; font-weight:700; letter-spacing:.5px;}
+  .yhead .pill{font-size:12px; padding:3px 12px; border-radius:20px;
+    border:1px solid var(--line); background:var(--panel); color:var(--dim);}
+  .yhead .pill.cur{color:#0b1020; background:#4ade80; border-color:#4ade80; font-weight:600;}
+  .yhead .ln{flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent);}
+  /* 多学年时才出现的切换条 */
+  .years{display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    padding-bottom:14px; margin-bottom:8px;}
+  .years .lbl{font-size:13px; color:var(--dim); margin-right:4px;}
+  .ytab{
+    cursor:pointer; user-select:none; font-size:14px; font-weight:600; color:var(--dim);
+    background:var(--panel); border:1px solid var(--line); border-radius:22px;
+    padding:7px 18px; transition:all .18s; display:flex; align-items:center; gap:7px;
+  }
+  .ytab:hover{color:var(--txt); border-color:#3b5486;}
+  .ytab.on{color:#0b1020; background:var(--acc); border-color:var(--acc);}
+  .ytab .live{width:6px; height:6px; border-radius:50%; background:#4ade80;}
+  .ytab.on .live{background:#0b1020;}
+
+  /* 考核项卡片 —— 有详情的整卡可点；无详情的（如考勤）为纯展示 */
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    gap:14px; max-width:880px;}
+  .card{
+    display:block; text-decoration:none; color:inherit; position:relative;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px 14px;
+  }
+  a.card{transition:border-color .18s, transform .18s, box-shadow .18s;}
+  a.card:hover{border-color:var(--acc); transform:translateY(-3px);
+    box-shadow:0 10px 26px rgba(0,0,0,.28);}
+  a.card:hover .go{color:var(--acc);}
+  a.card:hover .ic{transform:scale(1.1);}
+  .card .ch{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .card .ic{font-size:19px; line-height:1; transition:transform .18s;}
+  .card .nm{font-size:15px; font-weight:700; letter-spacing:.3px;}
+  /* 分值 */
+  .card .score{display:flex; align-items:baseline; gap:4px; color:var(--acc);}
+  .card .score b{font-size:27px; font-weight:800; line-height:1;
+    font-family:Consolas,"Cascadia Mono","Courier New","Microsoft YaHei",monospace;}
+  .card .score i{font-style:normal; font-size:12.5px; font-weight:600; opacity:.85;}
+  .card .score.empty b{font-size:17px; color:#5d6d99;}
+  .card .score.empty i{color:#5d6d99; opacity:1;}
+  .card .go{display:block; margin-top:12px; padding-top:11px; border-top:1px dashed var(--line);
+    text-align:right; font-size:12.5px; font-weight:600; color:#7dd3fc; transition:color .18s;}
+  /* 不可点卡片的底部说明（灰字，与「查看详情」同高保持整齐） */
+  .card .nt{display:block; margin-top:12px; padding-top:11px; border-top:1px dashed var(--line);
+    font-size:12.5px; color:var(--dim);}
+
+  /* 合计 */
+  .total{display:flex; align-items:center; gap:12px; margin-top:18px; max-width:880px;
+    padding:13px 18px; background:var(--panel); border:1px solid var(--line); border-radius:13px;}
+  .total .k{font-size:13.5px; color:var(--dim);}
+  .total .v{margin-left:auto; font-size:21px; font-weight:800; color:var(--acc);
+    font-family:Consolas,"Cascadia Mono","Courier New","Microsoft YaHei",monospace;}
+  .total .v i{font-style:normal; font-size:13px; font-weight:600; opacity:.85;}
+  .total .v.warn{color:#f87171;}
+
+  /* 待补充占位 */
+  .tbd{color:#5d6d99; border-bottom:1px dashed #3b4a72; padding-bottom:1px; font-size:13px;}
+
+  /* 提示条 */
+  .note{margin-top:24px; padding:15px 18px; border-radius:12px; font-size:13.5px; line-height:1.85;
+    background:rgba(125,211,252,.07); border-left:3px solid #7dd3fc; color:var(--txt);}
+  .note b{color:#7dd3fc;}
+  .note ul{margin:8px 0 0 20px;}
+  .note li{margin:4px 0;}
+  .note.warn{background:rgba(251,191,36,.07); border-left-color:var(--acc);}
+  .note.warn b{color:var(--acc);}
+  footer{text-align:center; font-size:12.5px; color:var(--dim); padding:30px 20px 10px;}
+  @media (max-width:640px){
+    .hero .ttl{font-size:21px;}
+    .card .score b{font-size:24px;}
+  }
+</style>
+<script src="theme.js"></script>
+
+</head>
+<body>
+<header>
+  <span class="org">北京理工大学信息技术创新学院</span>
+  <h1 id="cn">课程考核</h1>
+  <span class="sp"></span>
+  <span id="uname"></span>
+  <a class="home" id="backCh" href="chapters.html">← 课程目录</a>
+  <a class="home" href="index.html">← 返回首页</a>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="ttl" id="courseTitle">课程考核</div>
+    <div class="sub">本课程考核构成：考勤 · 课程报告 · 理论考试 · 项目实践。点击卡片查看各项详细要求。</div>
+  </div>
+
+<div class="years" id="years" style="display:none"></div>
+  <div id="panel"></div>
+  <footer id="foot"></footer>
+</main>
+
+<script src="data/assess.js"></script>
+<script>
+const COURSE_NAME = {
+  cangjie:'仓颉语言', oh_app:'应用开发', oh_device:'开源鸿蒙设备开发',
+  python:'Python', cpp:'C++', rust:'Rust', ascendc:'Ascend C',
+  typescript:'TypeScript', cangjie_case:'仓颉语言鸿蒙应用开发案例',
+  cangjie_server:'仓颉语言服务器端开发', cangjie_algo:'仓颉语言版数据结构与算法',
+  oh_system:'开源鸿蒙系统设计理论与实践', cann:'CANN', openjiuwen:'openJiuwen'
+};
+
+/* ===== 用户 ===== */
+try{
+  const u = JSON.parse(localStorage.getItem('bit_user')||'null');
+  if (u && u.name) document.getElementById('uname').textContent = '👤 ' + u.name;
+}catch(e){}
+
+/* ===== 课程 ===== */
+const courseId = new URLSearchParams(location.search).get('course') || 'cangjie';
+const courseName = COURSE_NAME[courseId] || COURSE_NAME.cangjie;
+// 每门课程独立取自己的数据块，不做跨课程兜底
+const data = (window.ASSESS_DATA && window.ASSESS_DATA[courseId]) || { years: [] };
+document.getElementById('courseTitle').textContent = courseName + ' · 课程考核';
+document.getElementById('cn').textContent = courseName + ' · 课程考核';
+document.title = courseName + ' 课程考核';
+document.getElementById('backCh').href = 'chapters.html?course=' + encodeURIComponent(courseId);
+
+/* ===== 工具 ===== */
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function isBlank(v){ return v === undefined || v === null || v === ''; }
+function val(v){ return isBlank(v) ? '<span class="tbd">待补充</span>' : esc(v); }
+// 分值：纯数字只显示数字，「分」由模板补；非数字（如「10 分」）原样显示
+function scoreNum(sc){
+  if (isBlank(sc)) return null;
+  const m = String(sc).match(/^\s*(\d+(?:\.\d+)?)\s*分?\s*$/);
+  return m ? m[1] : null;
+}
+function toNum(sc){ const n = scoreNum(sc); return n === null ? NaN : parseFloat(n); }
+function scoreHtml(sc){
+  const n = scoreNum(sc);
+  return n === null
+    ? '<span class="score empty"><b>' + (isBlank(sc) ? '待补充' : esc(sc)) + '</b></span>'
+    : '<span class="score"><b>' + n + '</b><i>分</i></span>';
+}
+function detailUrl(itemId){
+  return 'assessment_detail.html?course=' + encodeURIComponent(courseId) +
+         '&amp;item=' + encodeURIComponent(itemId);
+}
+// 某项详情是否全空（用于「待补充」提示）
+function detailEmpty(it){
+  return (it.detail || []).every(sec => {
+    if (sec.kv)    return sec.kv.every(([,v]) => isBlank(v));
+    if (sec.list)  return sec.list.every(v => isBlank(v));
+    if (sec.table) return (sec.table.rows||[]).every(r => r.slice(1).every(v => isBlank(v)));
+    return true;
+  });
+}
+
+/* ===== 学年 ===== */
+const years = data.years || [];
+let curIdx = years.findIndex(y => y.cur);
+if (curIdx < 0) curIdx = 0;
+
+const yearsEl = document.getElementById('years');
+if (years.length > 1) {
+  yearsEl.style.display = 'flex';
+  yearsEl.innerHTML = '<span class="lbl">学年</span>' + years.map((yr, i) =>
+    '<div class="ytab' + (i === curIdx ? ' on' : '') + '" data-i="' + i + '">' +
+    (yr.cur ? '<span class="live"></span>' : '') + esc(yr.y) + '</div>').join('');
+  yearsEl.querySelectorAll('.ytab').forEach(el => {
+    el.addEventListener('click', () => {
+      curIdx = +el.dataset.i;
+      yearsEl.querySelectorAll('.ytab').forEach(x => x.classList.toggle('on', x === el));
+      render();
+    });
+  });
+}
+
+/* ===== 渲染 ===== */
+function render(){
+  const wrap = document.getElementById('panel');
+  const foot = document.getElementById('foot');
+  const yr = years[curIdx];
+
+  if (!yr) {
+    wrap.innerHTML = '<div class="note warn"><b>该课程的考核内容尚未发布。</b>请留意任课教师的后续通知。</div>';
+    foot.textContent = '';
+    return;
+  }
+
+  const items = yr.items || [];
+
+  // 单学年：学年直接做标题；多学年：标题（切换条已在上面）
+  const head =
+    '<div class="yhead">' +
+      '<h2>' + esc(yr.y) + ' 学年</h2>' +
+      (yr.cur ? '<span class="pill cur">当前学年</span>' : '<span class="pill">已归档</span>') +
+      '<span class="ln"></span>' +
+    '</div>';
+
+  const cards = items.map(it => {
+    const clickable = it.link !== false;
+    const inner =
+      '<div class="ch">' +
+        '<span class="ic">' + (it.icon || '📌') + '</span>' +
+        '<span class="nm">' + esc(it.title || '考核项') + '</span>' +
+      '</div>' +
+      scoreHtml(it.score) +
+      (clickable
+        ? '<span class="go">' + (detailEmpty(it) && !it.guide ? '查看详情（待补充）' : '查看详情') + ' →</span>'
+        : '<span class="nt">' + esc(it.note || '不设独立提交项') + '</span>');
+    return clickable
+      ? '<a class="card" href="' + detailUrl(it.id) + '">' + inner + '</a>'
+      : '<div class="card">' + inner + '</div>';
+  }).join('');
+
+  // 合计
+  const nums = items.map(it => toNum(it.score)).filter(n => !isNaN(n));
+  const sum = nums.reduce((a, b) => a + b, 0);
+  const allScored = nums.length === items.length && items.length > 0;
+  const totalBar = items.length ? (
+    '<div class="total">' +
+      '<span class="k">合计（' + items.length + ' 项）</span>' +
+      '<span class="v' + (allScored && Math.abs(sum - 100) > 1e-6 ? ' warn' : '') + '">' +
+        (allScored ? (Number.isInteger(sum) ? sum : sum.toFixed(1)) + '<i>分</i>'
+                   : '<span style="font-size:15px;color:#5d6d99;">待补充</span>') +
+      '</span>' +
+    '</div>') : '';
+
+  wrap.innerHTML = head + '<div class="grid">' + cards + '</div>' + totalBar +
+    '<div class="note"><b>说明：</b>' +
+      '<ul>' +
+        '<li>各项分值以开课时公布的教学大纲为准，如有调整以任课教师通知为准。</li>' +
+        '<li>考勤按课堂出勤记录计分，不设独立提交项。</li>' +
+        '<li>课程报告、理论考试、项目实践的具体要求，点击对应卡片查看。</li>' +
+      '</ul>' +
+    '</div>';
+
+  foot.textContent = courseName + ' · 课程考核内容 · 北京理工大学信息技术创新学院';
+}
+
+render();
+</script>
+</body>
+</html>

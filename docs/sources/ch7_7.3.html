@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>7.3 ArkUI 框架与渲染管线 · 北京理工大学信息技术创新学院</title>
+<script>
+const ROOT='../../../';
+if (!localStorage.getItem('bit_user')) location.replace(ROOT+'login.html');
+</script>
+<style>
+  :root{--bg:#0b1020;--panel:#111a30;--panel2:#0d1528;--txt:#dbe4ff;--dim:#7c8db5;--line:#22304f;--acc:#60a5fa;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    background:radial-gradient(1200px 600px at 20% -10%,#0d1e3d 0%,var(--bg) 55%) fixed;
+    color:var(--txt);min-height:100vh;display:flex;flex-direction:column;}
+  header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 22px;
+    background:rgba(11,16,32,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:10;}
+  header .org{color:var(--acc);font-size:17px;font-weight:700;white-space:nowrap;letter-spacing:.5px;}
+  header h1{font-size:18px;font-weight:600;}
+  header .sp{flex:1;}
+  header a.home{color:#7dd3fc;text-decoration:none;font-size:13px;border:1px solid var(--line);padding:5px 12px;border-radius:8px;}
+  header a.home:hover{background:var(--panel);}
+  header #uname{font-size:13px;color:var(--dim);}
+  main{flex:1;width:auto;margin:0;padding:28px 24px 50px;transition:padding .28s;}
+  /* ===== 左侧目录树：宽屏常驻可收起 / 窄屏抽屉 ===== */
+  #sideToggle{display:none;border:1px solid var(--line);background:var(--panel);color:var(--acc);
+    font-size:13px;cursor:pointer;padding:4px 10px;border-radius:8px;}
+  #sidebar{position:fixed;top:64px;left:0;bottom:0;width:340px;z-index:40;
+    overflow-y:auto;padding:14px 10px 30px 16px;transform:translateX(-100%);
+    transition:transform .28s ease;
+    background:linear-gradient(180deg,rgba(13,21,40,.55),rgba(13,21,40,.25));
+    mask-image:linear-gradient(180deg,#000 92%,transparent);}
+  #sbCollapse{display:none;position:absolute;top:76px;right:-14px;width:28px;height:28px;
+    border:1px solid var(--line);border-radius:50%;background:var(--panel);
+    color:var(--dim);font-size:12px;cursor:pointer;z-index:41;line-height:26px;text-align:center;
+    box-shadow:0 2px 10px rgba(0,0,0,.35);}
+  #sbCollapse:hover{color:#7dd3fc;border-color:#7dd3fc;}
+  @media (min-width:1200px){
+    #sidebar{transform:translateX(0);}
+    body:not(.sb-hide) #sidebar{box-shadow:none;}
+    body:not(.sb-hide) main{margin-left:364px;padding-left:36px;}
+      body.sb-hide #sidebar{transform:translateX(-100%);}
+    body.sb-hide #sideToggle{display:inline-block;}
+    #sbMask.show{display:none;}
+    #sbCollapse{display:block;}
+    #sbClose{display:none;}
+    #sideToggle{display:none;}
+  }
+  body.sb-hide main{padding-left:0;transition:padding .28s;}
+  #sidebar.open{transform:translateX(0);box-shadow:8px 0 30px rgba(0,0,0,.45);}
+  #sidebar .sbHead{display:flex;align-items:center;justify-content:space-between;
+    padding:2px 8px 12px;margin-bottom:6px;}
+  #sidebar .sbHead .tt{font-size:13px;color:var(--dim);font-weight:500;letter-spacing:2px;}
+  #sidebar .sbHead button{border:none;background:transparent;color:var(--dim);font-size:16px;cursor:pointer;}
+  .srow{display:flex;align-items:center;gap:8px;user-select:none;transition:color .15s;}
+  .scaret{display:inline-block;width:14px;flex:0 0 auto;transition:transform .2s,color .15s;
+    color:#57689a;font-size:9px;}
+  #sidebar .p{margin:0;}
+  #sidebar .p > .srow{padding:13px 10px;cursor:pointer;font-weight:700;font-size:15px;
+    color:var(--txt);border-radius:10px;}
+  #sidebar .p > .srow:hover{color:#fcd34d;}
+  #sidebar .p > .srow:hover .scaret{color:var(--acc);}
+  #sidebar .pkids{overflow:hidden;max-height:0;transition:max-height .3s ease;margin-left:6px;}
+  #sidebar .p.open > .pkids{max-height:20000px;}
+  #sidebar .p.open > .srow .scaret{transform:rotate(90deg);}
+  #sidebar .c{margin-left:14px;}
+  #sidebar .c > .srow{padding:10px 10px;cursor:pointer;font-weight:400;font-size:13px;
+    color:var(--txt);margin-left:24px;border-radius:8px;}
+  #sidebar .c > .srow:hover{color:#fff;}
+  #sidebar .c > .srow:hover .scaret{color:var(--txt);}
+  #sidebar .c.open > .srow{color:#fff;}
+  #sidebar .c.open > .srow .scaret{transform:rotate(90deg);}
+  #sidebar .ckids{overflow:hidden;max-height:0;transition:max-height .3s ease;margin-left:44px;}
+  #sidebar .c.open > .ckids{max-height:12000px;}
+  #sidebar .s{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:13px;
+    color:#93a5cd;cursor:pointer;line-height:1.45;text-decoration:none;border-radius:8px;}
+  #sidebar .s .no{color:#57689a;font-size:12px;min-width:42px;flex:0 0 auto;}
+  #sidebar .s:hover{color:#fbbf24;}
+  #sidebar .s.cur{color:#fbbf24;font-weight:600;}
+  #sidebar .s.s2{font-size:12.5px;color:#7c8db5;padding:6px 10px 6px 26px;}
+  #sidebar .s.s2 .no{font-size:11px;color:#45557c;}
+  #sidebar .s.s2:hover{color:#fbbf24;}
+  #sidebar .s.s2.cur{color:#fbbf24;font-weight:600;}
+  #sbMask{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:49;display:none;}
+  #sbMask.show{display:block;}
+  .crumb{color:var(--dim);font-size:13px;margin-bottom:20px;}
+  .crumb b{color:#7dd3fc;}.crumb .sep{margin:0 8px;color:#45557c;}
+  h2.title{font-size:24px;margin-bottom:6px;}
+  .subtitle{color:var(--dim);font-size:14px;margin-bottom:26px;}
+  .ov{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px 28px;margin-bottom:22px;
+    line-height:2;font-size:14.5px;color:var(--txt);}
+  .ov p{margin-bottom:12px;color:var(--dim);}
+  .ov p b,.ov p code{color:var(--txt);}
+  .ov p code{background:#0a1122;padding:1px 7px;border-radius:5px;color:#7dd3fc;font-size:13px;font-family:Consolas,"Microsoft YaHei",monospace;}
+  .ov p:last-child{margin-bottom:0;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px 28px;margin-bottom:22px;}
+  .card h3{font-size:18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+  .card h3 .dot{width:8px;height:8px;border-radius:50%;background:#3b82f6;box-shadow:0 0 10px #3b82f6;}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;}
+  .k{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px 18px;border-top:3px solid var(--kc,#3b82f6);}
+  .k .t{font-weight:600;font-size:15px;margin-bottom:7px;}
+  .k .t .ic{margin-right:7px;}
+  .k .d{color:var(--dim);font-size:13px;line-height:1.75;}
+  .k .d code{background:#0a1122;padding:0 5px;border-radius:4px;color:#7dd3fc;font-size:11.5px;}
+  .tb{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .tb th,.tb td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;}
+  .tb th{color:#7dd3fc;font-weight:600;}
+  .tb td{color:var(--dim);} .tb td b{color:var(--txt);}
+  .tb td code{background:#0a1122;padding:1px 6px;border-radius:5px;color:#7dd3fc;font-size:12px;font-family:Consolas,"Microsoft YaHei",monospace;}
+  .tb tr:last-child td{border-bottom:none;}
+  .code{background:#070c18;border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+    font-family:Consolas,"Cascadia Mono","Courier New","Microsoft YaHei",monospace;
+    font-size:12.5px;line-height:1.75;white-space:pre;overflow-x:auto;}
+  .code .kw{color:#d8b4fe;font-weight:700;}
+  .code .fn{color:#7dd3fc;}
+  .code .num{color:#fde047;}
+  .code .cm{color:#8b9dc9;font-style:italic;}
+  .code .str{color:#86efac;}
+  .code .ty{color:#f9a8d4;}
+  .code .str{color:#86efac;}.code .t{color:#f472b6;}
+  .step{display:flex;gap:14px;margin-bottom:14px;align-items:flex-start;}
+  .step .n{width:30px;height:30px;border-radius:50%;background:#3b82f6;color:#fff;font-weight:700;
+    display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto;}
+  .step .b{flex:1;}
+  .step .b .st{font-weight:600;font-size:14.5px;margin-bottom:3px;}
+  .step .b .sd{color:var(--dim);font-size:13px;line-height:1.7;}
+  .step .b .sd code{background:#0a1122;padding:1px 6px;border-radius:4px;color:#7dd3fc;font-size:12px;font-family:Consolas,"Microsoft YaHei",monospace;}
+  .note{font-size:13px;color:#fbbf24;background:rgba(251,191,36,.07);
+    border-left:3px solid #fbbf24;border-radius:6px;padding:9px 13px;margin-top:14px;line-height:1.7;}
+  .warn{margin-top:10px;font-size:12.5px;color:#f87171;background:rgba(244,63,94,.08);
+    border-left:3px solid #f43f5e;border-radius:6px;padding:8px 12px;line-height:1.7;}
+  .tip{margin-top:10px;font-size:12.5px;color:#4ade80;background:rgba(34,197,94,.08);
+    border-left:3px solid #22c55e;border-radius:6px;padding:8px 12px;line-height:1.7;}
+  .prevnext{display:flex;justify-content:space-between;gap:12px;margin-top:6px;}
+  .prevnext a{flex:1;text-align:center;padding:12px;border-radius:12px;border:1px solid var(--line);
+    background:var(--panel);color:var(--txt);text-decoration:none;font-size:13.5px;transition:border-color .2s;}
+  .prevnext a:hover{border-color:#7dd3fc;color:#7dd3fc;}
+  .prevnext a span{display:block;font-size:11px;color:var(--dim);margin-bottom:3px;}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(120,141,181,.35);border-radius:10px;
+    border:2px solid transparent;background-clip:padding-box;min-height:32px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(120,141,181,.6);}
+  html{scrollbar-width:thin;scrollbar-color:rgba(120,141,181,.4) transparent;}
+</style>
+<script src="../../../theme.js"></script>
+</head>
+<body>
+<header>
+  <button id="sideToggle" title="目录">☰ 目录</button>
+  <span class="org">北京理工大学信息技术创新学院</span>
+  <h1>ArkUI 框架与渲染管线</h1>
+  <span class="sp"></span>
+  <span id="uname"></span>
+  <a class="home" id="backCh" href="#">← 返回目录</a>
+</header>
+<nav id="sidebar" aria-label="章节目录">
+  <button id="sbCollapse" title="收起目录">≪</button>
+  <div class="sbHead"><span class="tt">📚 章节目录</span><button id="sbClose" title="收起">✕</button></div>
+  <div id="sbTree"></div>
+</nav>
+<div id="sbMask"></div>
+<main>
+  <div class="crumb" id="crumb"></div>
+  <h2 class="title">7.3 ArkUI 框架与渲染管线</h2>
+  <div class="subtitle">7.3 ArkUI 框架与渲染管线</div>
+<div class="ov">
+<p>7.2 讲到「首帧上屏」就停住了。本节接着往下：<b>屏幕上那一个像素，是怎么从一句 <code>this.count++</code> 变出来的</b>。</p>
+<p>ArkUI 的完整链路可以概括成四段：<b>状态变更 → 标记脏节点 → 一帧内 Build / Layout / Draw（应用侧）→ RenderService 进程合成送显</b>。源码分别在 <code>foundation/arkui/ace_engine</code> 与 <code>graphic/graphic_2d</code>。</p>
+<p>理解这条管线最大的收获不是记住阶段名，而是明白两件事：<b>① 改了数据不会立刻显示，要等下一个 VSync 节拍；② 应用进程只负责「生产绘制指令」，真正画像素的是另一个进程。</b>这两条决定了绝大多数 UI 性能问题的成因与排查方向。</p>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>先更正原页面的三处表述</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:12px;">原版 7.3 只有一段五行的伪管线，其中三处容易让人建立错误的心智模型——尤其第一条，会让人把 ArkUI 当成 React 那类「虚拟 DOM 全树 diff」。</p>
+  <div class="warn">⚠️ <b>① 「组件树 diff」这个说法在 ArkUI NG 上已经不准确。</b>NG 架构不是每次都拿新旧两棵树做对比，而是<b>维护四类「脏节点队列」</b>：谁变了就把谁标记进对应队列，下一帧只处理队列里的节点。<br>官方对这次演进的说法是：Diff 从「树对比」升级为<b>单节点的函数式更新</b>。<br>这也解释了为什么「减少嵌套」有效——它减少的是节点数与布局传播范围，而不是「diff 的树规模」。</div>
+  <div class="warn" style="margin-top:10px;">⚠️ <b>② 「Render 树生成（渲染线程）」这个阶段在统一渲染下已经不存在于应用进程。</b><br>FrameNode 创建时就一直挂着对应的 RenderNode，<b>Render 树不是每帧「生成」的</b>；而真正的绘制（光栅化）在<b>RenderService 进程</b>里由 UniRender 一次完成。应用进程只把「这一帧改了什么」打包成命令发出去。</div>
+  <div class="warn" style="margin-top:10px;">⚠️ <b>③ 整条链漏了最关键的驱动者：VSync。</b>原图看上去像是「改数据 → 一路往下走 → 屏幕亮」。<br>实际上 <b>ArkUI 不自定节拍</b>：改数据只是「举手报名」，真正的推进要等窗口系统发来 VSync 回调。少了这一环，就解释不了「为什么改完数据到看见有一帧延迟」。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>主线：改一个数字，要跨几道关</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:14px;">先看全貌。注意<b>左侧标的是执行者</b>——这条链上有两个进程、至少四个线程参与。</p>
+  <div class="code"><span class="cm">【应用进程 · UI 线程】</span>
+  this.count++                     <span class="cm"># ① 赋值，触发观察者</span>
+    │
+    ├─ 标记脏节点                   <span class="cm"># ② 按类型进不同队列</span>
+    │    property / custom / layout / render
+    │
+    └─ RequestFrame()               <span class="cm"># ③ 向窗口系统「报名」要一帧</span>
+         │
+         ⋮  <span class="cm">（等硬件 VBlank，可能等 0~16.7ms）</span>
+         ▼
+<span class="cm">【应用进程 · UI 线程】FlushVsync(ts, frameCount)</span>
+    ├─ FlushBuild        重跑脏组件的 build()   <span class="cm"># 最多迭代 3 次</span>
+    ├─ FlushLayoutTask   measure / layout
+    ├─ FlushRenderTask   同步属性到 RenderNode
+    └─ FlushMessages     攒了一帧的命令打包
+         │
+         ▼  <span class="cm">RSUIDirector::SendMessages → 跨进程 IPC</span>
+<span class="cm">【RenderService 进程 · RS 主线程】</span>
+    ├─ ProcessCommand    消化应用发来的事务
+    ├─ Animate           步进属性动画
+    ├─ Render            遍历全局渲染树 UniRender
+    └─ OnUniRenderDraw   交给 RSUniRenderThread
+         │
+         ▼
+<span class="cm">【RenderService 进程 · UniRender 线程】</span>
+    GPU 光栅化 → 合成所有窗口图层 → 帧缓冲
+         │
+         ▼
+    下一个 VBlank 切换帧缓冲 → 屏幕</div>
+  <div class="kv">
+    <div class="k" style="--kc:#3b82f6"><div class="t"><span class="ic">🏭</span>应用进程</div><div class="d">只<b>生产指令</b>：算布局、记属性变化。不画像素。</div></div>
+    <div class="k" style="--kc:#3b82f6"><div class="t"><span class="ic">🎨</span>RS 进程</div><div class="d">只<b>消费指令</b>：遍历、光栅化、合成。全系统所有窗口一起画。</div></div>
+    <div class="k" style="--kc:#3b82f6"><div class="t"><span class="ic">⏱</span>VSync</div><div class="d">唯一的节拍源。两端各自订阅，靠相位差形成流水线。</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>VSync：为什么要等，而不是立刻画</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:12px;">这是全节最该建立的一个直觉：<b>「改数据」和「画面变化」之间必然隔着一帧</b>。不是框架偷懒，而是屏幕的物理特性决定的——不等 VBlank 就写帧缓冲，会看到画面撕裂。</p>
+  <div class="code"><span class="cm"># 从硬件到应用的 VSync 分发链（rosen）</span>
+显示 HDI 收到硬件 VBlank
+  │  hdi_screen.cpp: OnVsync 回调，喂时间戳
+  ▼
+<span class="ty">VSyncSampler</span>      多次采样，校准出真实硬件节拍（容忍抖动）
+  ▼
+<span class="ty">VSyncGenerator</span>     依据采样建立软件 vsync 模型
+  ▼
+<span class="ty">VSyncController</span> × 2   一个给 RS、一个给应用
+  │
+  ├─ RS 的相位 <span class="str">offset 更早</span>  <span class="cm"># 先让 RS 干活</span>
+  └─ 应用的相位 稍晚         <span class="cm"># 应用画「下一帧」，RS 合成「上一帧」</span></div>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin:14px 0 12px;">这个<b>相位差</b>是流水线的关键：如果两个进程同时开工，就变成「应用画完、RS 才开工」，一帧的实际耗时是两者相加；错开之后，两者并行，一帧的耗时约等于较慢的那一个。</p>
+  <table class="tb">
+    <thead><tr><th style="width:26%">环节</th><th style="width:30%">由谁驱动</th><th>不这么做会怎样</th></tr></thead>
+    <tbody>
+      <tr><td>应用侧 build / layout</td><td>应用自己的 VSync 回调</td><td>无节拍地抢 CPU，耗电且抖动</td></tr>
+      <tr><td>RS 侧遍历与合成</td><td>RS 的 VSync 回调（相位更早）</td><td>与应用串行，一帧耗时翻倍</td></tr>
+      <tr><td>帧缓冲切换</td><td>硬件 VBlank</td><td>画面撕裂</td></tr>
+    </tbody>
+  </table>
+  <div class="note">💡 <b>一个直接推论：60 Hz 屏上，一帧只有 16.7 ms。</b>「掉帧」不是说这一帧花了 20 ms，而是它<b>错过了这个 VSync</b>，整体推到下一个节拍——用户看到的就是从 16.7 ms 变成 33.3 ms 的卡顿。<br>所以优化 UI 时的目标不是「平均快一点」，而是<b>把最慢那一帧压进 16.7 ms 以内</b>。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>一帧之内，顺序是写死的</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:12px;"><code>PipelineContext</code> 是整个管线的协调者，核心方法只有一个：<code>FlushVsync(nanoTimestamp, frameCount)</code>。VSync 一到，它就按固定顺序把这一帧的任务跑完。</p>
+  <div class="code"><span class="cm">// frameworks/core/pipeline_ng/pipeline_context.cpp —— FlushVsync（简化）</span>
+ProcessDelayTasks()        <span class="cm">// 延迟任务</span>
+DispatchDisplaySync()      <span class="cm">// 显示同步回调</span>
+FlushAnimation()           <span class="cm">// 动画步进</span>
+
+<span class="ty">FlushBuild()</span>               <span class="cm">// ← 重跑脏组件的 build()</span>
+  ├─ FlushFreezeNode()          <span class="cm">// 先解冻被临时冻结的节点</span>
+  ├─ FlushDirtyPropertyNodes()  <span class="cm">// 应用 Node API 的属性改动</span>
+  ├─ FlushPendingDeleteCustomNode() <span class="cm">// 清理待删节点</span>
+  └─ FlushDirtyNodeUpdate()     <span class="cm">// 重建自定义组件，最多迭代 3 次</span>
+
+taskScheduler_-&gt;<span class="ty">FlushTask()</span>   <span class="cm">// ← measure / layout</span>
+FlushAnimationClosure()
+<span class="ty">FlushMessages()</span>             <span class="cm">// ← 把这一帧的命令发给 RS</span></div>
+  <h4 style="font-size:15px;margin:22px 0 12px;color:var(--txt);">三个值得注意的设计细节</h4>
+  <table class="tb">
+    <thead><tr><th style="width:30%">细节</th><th>为什么这么设计</th></tr></thead>
+    <tbody>
+      <tr><td><b>属性改动要先于 build</b><br>（<code>FlushDirtyPropertyNodes</code> 在 <code>FlushDirtyNodeUpdate</code> 前）</td><td>通过 Node API 直接改的属性如果晚于 build 应用，会被 build 里算出的值覆盖。顺序反了就是「设了不生效」</td></tr>
+      <tr><td><b>build 最多只迭代 3 次</b><br>（<code>maxFlushTimes = 3</code>）</td><td>build 里改状态会产生新的脏节点，形成级联。留 3 次是给正常级联用，再多就说明<b>状态在 build 里被反复改</b>——那是设计问题，继续迭代只会死循环</td></tr>
+      <tr><td><b>先解冻再 build</b><br>（<code>FlushFreezeNode</code>）</td><td>被冻结的节点不参与更新；不解冻就 build，会出现「数据变了但这一帧没算进去」</td></tr>
+    </tbody>
+  </table>
+  <div class="warn">⚠️ <b>「build 里不要改状态」不只是风格建议，是硬约束。</b>build 中改 <code>@State</code> 会让框架在本帧内反复重建，超过 3 次就不再处理——表现为<b>某些节点这一帧没更新，下一帧才补上</b>，看起来像「偶发闪烁」，极难排查。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>四类脏节点：不是一棵树在 diff</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:12px;">原页面用「组件树 diff」概括，但真实实现是<b>四个独立的队列</b>，各自在不同阶段被消费。分清它们，才知道「我这处改动会触发到哪一步」。</p>
+  <table class="tb">
+    <thead><tr><th style="width:17%">脏类型</th><th style="width:29%">存放位置</th><th style="width:19%">消费阶段</th><th>触发方式</th></tr></thead>
+    <tbody>
+      <tr><td><b>属性脏</b></td><td><code>dirtyPropertyNodes_</code></td><td>Build <b>之前</b></td><td>Node API 直接改属性</td></tr>
+      <tr><td><b>自定义节点脏</b></td><td><code>dirtyNodes_</code></td><td>Build</td><td>状态变更导致 build 需要重跑</td></tr>
+      <tr><td><b>布局脏</b></td><td><code>taskScheduler_-&gt;dirtyLayoutNodes_</code></td><td>Layout</td><td>尺寸约束变化、节点增删</td></tr>
+      <tr><td><b>渲染脏</b></td><td><code>taskScheduler_-&gt;dirtyRenderNodes_</code></td><td>Render</td><td>仅视觉属性变化（颜色、透明度）</td></tr>
+      <tr><td><b>冻结脏</b></td><td><code>dirtyFreezeNode_</code></td><td>Build <b>之前</b></td><td>节点被冻结 / 解冻</td></tr>
+    </tbody>
+  </table>
+  <div class="tip">✅ <b>这解释了一类常见现象：只改颜色为什么比重建组件便宜得多。</b>改颜色只进「渲染脏」队列，跳过 Build 和 Layout，直接进 Render 阶段。而改一个影响尺寸的状态会连进三个队列。<b>「改什么」比「改多少」更决定开销。</b></div>
+  <h4 style="font-size:15px;margin:22px 0 12px;color:var(--txt);">RequestFrame 只报一次名</h4>
+  <div class="code"><span class="cm">// 任何一处标记脏节点，都会走到这里</span>
+AddDirtyLayoutNode(node);
+  → 加入 dirtyLayoutNodes_
+  → hasIdleTasks_ = <span class="kw">true</span>       <span class="cm">// 表示「有活要干」</span>
+  → <span class="fn">RequestFrame</span>()              <span class="cm">// 若本帧还没请求过，才真正向窗口系统要一帧</span></div>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin:12px 0 0;">所以一次点击里改了 100 个状态，也<b>只请求一帧</b>——所有改动被合并到同一个 VSync 里处理。这就是「批量更新」的实现方式，不需要开发者手动 batch。</p>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>状态管理 V1 与 V2：粒度决定刷新范围</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:12px;">「最小更新域」这四个字原页面只写了一次，但它其实是整条管线的<b>入口质量</b>——脏节点标记得准不准，决定了后面所有阶段的工作量。而准不准，取决于用的是 V1 还是 V2。</p>
+  <table class="tb">
+    <thead><tr><th style="width:18%">维度</th><th style="width:39%">V1</th><th>V2</th></tr></thead>
+    <tbody>
+      <tr><td><b>监听粒度</b></td><td>对象<b>引用级</b>——深一层就够不着</td><td><b>属性级</b>——改多深都能捕获</td></tr>
+      <tr><td><b>刷新范围</b></td><td>重新执行整个自定义组件的 <code>build()</code></td><td>只更新绑定该属性的 UI 节点</td></tr>
+      <tr><td><b>依赖收集</b></td><td>运行期，代理对象通知</td><td>编译期标记 + 渲染期收集</td></tr>
+      <tr><td><b>核心装饰器</b></td><td><code>@State</code> <code>@Prop</code> <code>@Link</code> <code>@Observed</code> <code>@ObjectLink</code> 等 7 种</td><td><code>@ComponentV2</code> <code>@ObservedV2</code> <code>@Trace</code> <code>@Local</code> <code>@Param</code> 等 6 种</td></tr>
+      <tr><td><b>数组</b></td><td>只监听整体赋值；<code>push</code> / 改元素内属性常不刷新</td><td>原生支持 <code>push</code> / <code>splice</code> / 子元素属性修改</td></tr>
+      <tr><td><b>典型坑</b></td><td>改 <code>user.name</code> 界面不动，得整体换引用</td><td>属性不加 <code>@Trace</code> 就完全不观察</td></tr>
+    </tbody>
+  </table>
+  <h4 style="font-size:15px;margin:22px 0 12px;color:var(--txt);">V1 里想缩到字段级，有两条路</h4>
+  <div class="code"><span class="cm">// 路线一：拆行组件 + @Observed / @ObjectLink（组件级 → 行级）</span>
+<span class="kw">@Observed</span> <span class="kw">class</span> <span class="ty">RowData</span> { id: <span class="ty">string</span> = <span class="str">''</span>; count: <span class="ty">number</span> = 0; }
+
+<span class="kw">@Component</span>
+<span class="kw">struct</span> <span class="ty">RowView</span> {
+  <span class="kw">@ObjectLink</span> item: RowData;          <span class="cm">// 接住同一实例，不是拷贝</span>
+  <span class="fn">build</span>() { <span class="ty">Text</span>(<span class="str">`${this.item.count}`</span>) }
+}
+
+<span class="cm">// 路线二：再进一步，用 @Track 缩到字段（API 11+）</span>
+<span class="kw">@Observed</span> <span class="kw">class</span> <span class="ty">RowData2</span> {
+  id: <span class="ty">string</span> = <span class="str">''</span>;
+  <span class="kw">@Track</span> title: <span class="ty">string</span> = <span class="str">''</span>;      <span class="cm">// 只有读取 title 的 UI 会刷新</span>
+}</div>
+  <div class="warn">⚠️ <b>V1 的 <code>@ObjectLink</code> 只代理一层。</b>如果 <code>RowData</code> 里再嵌一个自定义类，改那个类里的字段 <code>@ObjectLink</code> 就管不到了，必须再拆一层组件、再给嵌套类加 <code>@Observed</code>。<br>这是 V1 最典型的「装饰器都加了但就是不刷新」的原因——不是写错了，是<b>层级超出了一层代理的能力</b>。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>「最小更新」是怎么被写坏的</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:12px;">框架默认做的是最小更新，但下面五种写法会让它退化成大面积重建。<b>这几种在真实项目里出现频率极高</b>，而且都不会报错。</p>
+  <table class="tb">
+    <thead><tr><th style="width:34%">写法</th><th style="width:26%">后果</th><th>改法</th></tr></thead>
+    <tbody>
+      <tr><td>一个大 ViewModel 装整个页面状态</td><td>任一字段变化 → <b>整页重建</b></td><td>按更新范围拆成多个状态变量 / 多个子组件</td></tr>
+      <tr><td>在 <code>build()</code> 里做计算或调函数</td><td>每次重建都重算，可能还写状态</td><td>前置到 <code>aboutToAppear</code> 或异步算好再赋值</td></tr>
+      <tr><td><code>@State</code> 持有深层对象，直接改内部字段</td><td>V1 下<b>不刷新</b>；用整体替换又整组件重建</td><td>用 V2 的 <code>@Trace</code>，或 <code>@Observed</code> + <code>@ObjectLink</code></td></tr>
+      <tr><td><code>ForEach</code> 的 key 用 index 或时间戳</td><td>key 不稳定 → <b>整行重建</b>，图片闪烁</td><td>用稳定的业务 ID 作 key</td></tr>
+      <tr><td>组件嵌套过深（十层以上容器）</td><td>测量与布局沿层级传播，耗时长</td><td>用 <code>RelativeContainer</code> 扁平化</td></tr>
+    </tbody>
+  </table>
+  <div class="note">💡 <b>还有两个容易被忽略的：</b><br>① 大量重复子项用自定义组件会额外产生 <code>CustomNode</code>，改用 <code>@Builder</code> 不生成额外节点，节点数与内存都更低。<br>② 长列表里频繁创建销毁的项加 <code>@Reusable</code>，滑出可视区进复用缓存、滑入时调 <code>aboutToReuse</code> 刷新——省的不只是创建开销，还有 GC。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>布局：成本不在代码，在传播</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:12px;">Layout 阶段是唯一<b>会沿树传播</b>的阶段：父的约束变了，子要重新测量；子的尺寸变了，父可能要重新摆放。这是「深层嵌套为什么慢」的根源。</p>
+  <div class="code"><span class="cm"># 一次布局的传播方向</span>
+父节点约束变化
+  → measure（向下传约束，向上返回尺寸）
+      → 子树逐层重新测量
+  → layout（向下传最终位置）
+
+<span class="cm"># 所以：改一个内层组件的尺寸</span>
+<span class="cm">#      可能让整条祖先链重新测量</span>
+<span class="cm"># 而改一个纯视觉属性（颜色）不碰布局</span></div>
+  <table class="tb">
+    <thead><tr><th style="width:30%">容器选择</th><th>适用与代价</th></tr></thead>
+    <tbody>
+      <tr><td><code>Row</code> / <code>Column</code></td><td>最轻，单一方向布局。<b>能用就别上 Flex</b></td></tr>
+      <tr><td><code>Flex</code></td><td>灵活但测量成本更高（需处理换行、剩余空间分配）</td></tr>
+      <tr><td><code>RelativeContainer</code></td><td><b>扁平化利器</b>——多层嵌套的定位关系统统拍平到一层</td></tr>
+      <tr><td><code>Grid</code> / <code>List</code> / <code>Swiper</code></td><td>专为大量子项设计，<b>配合 <code>LazyForEach</code></b> 才有意义</td></tr>
+    </tbody>
+  </table>
+  <div class="tip">✅ <b>判断「该不该扁平化」的实用标准</b>：如果几层容器只是为了控制位置（对齐、间距、居中），而不是真的需要独立的布局语义，那它们几乎都可以被 <code>RelativeContainer</code> 或统一的 <code>padding/margin</code> 替掉。<b>每一层省下的是整棵子树的测量</b>。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>统一渲染：应用只出指令，RS 一口气画完</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:12px;">这是 OpenHarmony 图形栈与早期 Android 最本质的差别，也是「应用进程不画像素」这句话的由来。</p>
+  <table class="tb">
+    <thead><tr><th style="width:16%">环节</th><th style="width:42%">OpenHarmony（统一渲染 UniRender）</th><th>Android（分离渲染，传统模型）</th></tr></thead>
+    <tbody>
+      <tr><td><b>绘制</b></td><td>应用只提交命令，<b>RS 进程</b>遍历全局渲染树时统一做</td><td>应用进程的 RenderThread 先画到自己的 Surface</td></tr>
+      <tr><td><b>合成</b></td><td>同一个进程、同一次遍历里完成</td><td>SurfaceFlinger 再合成一遍</td></tr>
+      <tr><td><b>帧缓冲</b></td><td>省掉中间那一份</td><td>各应用 Surface + 合成输出，多一份开销</td></tr>
+      <tr><td><b>跨窗口效果</b></td><td>天然可见全系统图层（模糊背景、跨窗口动效更容易做）</td><td>拿不到别的窗口内容</td></tr>
+    </tbody>
+  </table>
+  <h4 style="font-size:15px;margin:22px 0 12px;color:var(--txt);">RS 主线程一帧的主循环</h4>
+  <div class="code"><span class="cm">// rosen/modules/render_service —— 每帧主循环（简化）</span>
+ConsumeAndUpdateAllNodes()    <span class="cm">// 同步应用侧节点状态</span>
+ProcessCommand()              <span class="cm">// 消化应用发来的事务</span>
+Animate(timestamp)            <span class="cm">// 步进属性动画</span>
+CollectInfoForHardwareComposer()
+<span class="ty">Render()</span>                     <span class="cm">// 遍历全局渲染树（UniRender）</span>
+<span class="ty">OnUniRenderDraw()</span>           <span class="cm">// 交给 UniRender 线程做 GPU 光栅化</span>
+SendCommands()</div>
+  <div class="warn">⚠️ <b>RS 进程的调度优先级是刻意拉到最高的</b>（实时调度策略）。因为它管的是<b>全系统所有窗口</b>的合成——它卡一帧，不是某一个应用卡，而是整个屏幕都在卡。这也是为什么「某个应用把 RS 拖慢」会影响其他应用的观感。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>掉帧了，该看哪里</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:12px;">管线分四段，掉帧也可能发生在任意一段。<b>先定位在哪一段，再谈优化</b>——否则很容易在应用代码里找半天，问题其实在合成侧。</p>
+  <table class="tb">
+    <thead><tr><th style="width:22%">现象</th><th style="width:30%">最可能卡在</th><th>下一步查什么</th></tr></thead>
+    <tbody>
+      <tr><td>滑动时列表卡，静止不卡</td><td>Build 或 Layout（应用侧）</td><td>是否有整行重建、key 是否稳定、是否用了 <code>LazyForEach</code></td></tr>
+      <tr><td>点一下延迟一下才变</td><td>没等到下一帧，或主线程被占</td><td>点击回调里有没有同步重活；是否在等网络</td></tr>
+      <tr><td>动画掉帧但列表不卡</td><td>RS 侧合成</td><td>图层数是否过多、是否有大面积模糊 / 离屏渲染</td></tr>
+      <tr><td>偶发闪烁、部分节点不更新</td><td><b>build 内改状态</b>导致迭代超限</td><td>检查 <code>build()</code> 里是否有赋值</td></tr>
+      <tr><td>所有应用一起卡</td><td>RS 进程被拖慢</td><td><code>hidumper -s RenderService</code> 看节点数与帧率</td></tr>
+    </tbody>
+  </table>
+  <h4 style="font-size:15px;margin:22px 0 12px;color:var(--txt);">两个能直接用的工具</h4>
+  <div class="code"><span class="cm"># ① DevEco Studio 的两条泳道（最有用）</span>
+<span class="ty">ArkUI State</span>       <span class="cm">// 哪个状态变量变化最频繁、影响范围多大</span>
+<span class="ty">ArkUI Component</span>   <span class="cm">// 哪个组件被绘制了多少次、单次多长</span>
+
+<span class="cm"># ② 设备侧看合成器状态</span>
+hdc shell hidumper -s RenderService</div>
+  <div class="note">💡 <b>「ArkUI Component 泳道里某个组件被绘制了几十次」是最好用的信号。</b>正常情况下静止页面应该接近 0 次；如果它在反复重绘，几乎一定是某个状态变量在无意义地变（时间戳、随机数、每帧更新的对象），或者它依赖了过大的状态。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>五个常见误解</h3>
+  <div class="kv">
+    <div class="k" style="--kc:#f59e0b"><div class="t"><span class="ic">1️⃣</span>「改完状态界面就该立刻变」</div><div class="d">不会。<b>必须等到下一个 VSync</b>，而且这一帧不一定来得及——错过就推到下一帧。</div></div>
+    <div class="k" style="--kc:#8b5cf6"><div class="t"><span class="ic">2️⃣</span>「ArkUI 在做虚拟 DOM diff」</div><div class="d">NG 架构是<b>脏节点队列 + 单节点更新</b>，不是新旧树对比。所以「减少嵌套」省的是布局传播，不是 diff 规模。</div></div>
+    <div class="k" style="--kc:#10b981"><div class="t"><span class="ic">3️⃣</span>「应用进程负责把界面画出来」</div><div class="d">统一渲染下应用<b>只生产指令</b>。光栅化与合成都在 RS 进程。</div></div>
+    <div class="k" style="--kc:#ef4444"><div class="t"><span class="ic">4️⃣</span>「帧率上不去就是代码写得不好」</div><div class="d">可能卡在合成侧（图层过多、离屏渲染）。先分段定位，别默认是应用代码。</div></div>
+    <div class="k" style="--kc:#3b82f6"><div class="t"><span class="ic">5️⃣</span>「V2 一定比 V1 快」</div><div class="d">V2 的<b>更新粒度更细</b>，但属性不加 <code>@Trace</code> 就完全不观察；V1 在结构简单时反而更省心。<b>不能在同一状态链里混用两套。</b></div></div>
+  </div>
+  <div class="tip">✅ <b>本节与《应用开发》的分工</b>：应用课讲「怎么写出不卡的界面」（装饰器怎么用、组件怎么选）；本节讲「为什么这些写法会不卡」——从 PipelineContext 与 RenderService 的视角看同一件事。<br>系统课的价值在于：当应用课给的规则失效时（比如某个偶发闪烁），你能顺着管线自己找到原因。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>自测五问 &amp; 第 7 章收尾</h3>
+  <table class="tb">
+    <thead><tr><th style="width:52%">问题</th><th>要点</th></tr></thead>
+    <tbody>
+      <tr><td>1. 改状态后为什么不会立刻显示？</td><td>要等窗口系统下发 VSync；<code>RequestFrame</code> 只是报名</td></tr>
+      <tr><td>2. 一帧内 Build 和 Layout 谁先？</td><td>Build 先（且属性脏在 build 前应用），然后 <code>FlushTask</code> 做 measure / layout</td></tr>
+      <tr><td>3. 只改颜色会走几个阶段？</td><td>只进渲染脏队列，跳过 Build 与 Layout</td></tr>
+      <tr><td>4. 为什么 RS 的 VSync 相位要更早？</td><td>让「应用画下一帧」与「RS 合成上一帧」并行，避免串行翻倍</td></tr>
+      <tr><td>5. 统一渲染省掉了什么？</td><td>应用侧 RenderThread 的绘制 + 一次中间帧缓冲</td></tr>
+    </tbody>
+  </table>
+  <h4 style="font-size:15px;margin:22px 0 12px;color:var(--txt);">第 7 章三节合起来看</h4>
+  <div class="code"><span class="cm">7.1 组件模型   —— 应用在系统眼里「是什么」</span>
+     一组 Ability，共享一个引擎实例
+        │
+<span class="cm">7.2 拉起与调度 —— 它「怎么活」</span>
+     appspawn 造进程 → AMS 推生命周期 → 首帧上屏
+        │
+<span class="cm">7.3 渲染管线   —— 那之后「怎么显示」</span>
+     状态 → 脏节点 → Build/Layout → RS 合成 → 屏幕
+
+<span class="cm"># 一节解决一个问题，叠起来才是完整的一次「点图标到看见内容」</span></div>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin:14px 0 0;">下一章进入第 8 章<b>分布式软总线</b>——从「单个设备内部怎么跑」转向「多个设备之间怎么连」。</p>
+</div>
+  <div class="prevnext">
+    <a id="prevA" href="#"><span>← 上一节</span></a>
+    <a id="nextA" href="#"><span>下一节 →</span></a>
+  </div>
+</main>
+<script>
+try{const u=JSON.parse(localStorage.getItem('bit_user')||'null');if(u&&u.name)document.getElementById('uname').textContent='👤 '+u.name;}catch(e){}
+const courseId=new URLSearchParams(location.search).get('course')||'oh_system';
+document.getElementById('backCh').href=ROOT+'chapters.html?course='+encodeURIComponent(courseId);
+document.getElementById('crumb').innerHTML='<b>第三部分：系统服务与应用框架</b><span class="sep">›</span><b>第7章 应用框架</b><span class="sep">›</span>7.3 ArkUI 框架与渲染管线';
+document.getElementById('prevA').href="../7.2/index.html?course=oh_system";
+document.getElementById('prevA').innerHTML='<span>← 上一节</span>7.2 Ability 生命周期与调度（AppSpawn）';
+document.getElementById('nextA').href="../../ch8/8.1/index.html?course=oh_system";
+document.getElementById('nextA').innerHTML='<span>下一节 →</span>8.1 软总线通信原理';
+/* ===== 左侧目录树：拉取本课程 toc 渲染，当前节高亮 ===== */
+(function(){
+  const MY_NO='7.3';
+  const sb=document.getElementById('sidebar'),mask=document.getElementById('sbMask');
+  const open=()=>{sb.classList.add('open');mask.classList.add('show');};
+  const close=()=>{sb.classList.remove('open');mask.classList.remove('show');};
+  const wide=()=>window.matchMedia('(min-width:1200px)').matches;
+  const colBtn=document.getElementById('sbCollapse');
+  const tgBtn=document.getElementById('sideToggle');
+  const hide=()=>{document.body.classList.add('sb-hide');try{localStorage.setItem('sbHide','1')}catch(e){}};
+  const show=()=>{document.body.classList.remove('sb-hide');try{localStorage.removeItem('sbHide')}catch(e){}};
+  if(colBtn) colBtn.onclick=hide;
+  tgBtn.onclick=()=>{ if(wide()){show();} else open(); };
+  document.getElementById('sbClose').onclick=close;
+  mask.onclick=close;
+  try{ if(localStorage.getItem('sbHide')==='1') document.body.classList.add('sb-hide'); }catch(e){}
+  const sc=document.createElement('script');
+  sc.src=ROOT+'data/toc-'+courseId+'.js?v='+Date.now();
+  sc.onload=()=>{
+    const TOC=window.COURSE_TOC||[];
+    const tree=document.getElementById('sbTree');
+    const curPage='part4/ch7/7.3/index.html';
+    let html='';
+    TOC.forEach(pt=>{
+      const chs=pt.chapters.map(ch=>{
+        const kids=ch.secs.map(s=>{
+          let sh='<a class="s'+(s.page===curPage?' cur':'')+'" href="'+ROOT+s.page+'?course='+courseId+'">'+
+                 '<span class="no">'+s.no+'</span><span>'+s.t+'</span></a>';
+          (s.subs||[]).forEach(x=>{
+            sh+='<a class="s s2'+(x.page===curPage?' cur':'')+'" href="'+ROOT+x.page+'?course='+courseId+'">'+
+                '<span class="no">'+x.no+'</span><span>'+x.t+'</span></a>';
+          });
+          return sh;
+        }).join('');
+        return '<div class="c"><div class="srow c-head"><span class="scaret">▶</span><span>'+ch.ch+'</span></div>'+
+               '<div class="ckids">'+kids+'</div></div>';
+      }).join('');
+      html+='<div class="p"><div class="srow p-head"><span class="scaret">▶</span><span>📚 '+
+            pt.part.replace(/^[^：:]*[：:]/,'')+'</span></div>'+
+            '<div class="pkids">'+chs+'</div></div>';
+    });
+    tree.innerHTML=html;
+    // 篇/章折叠；默认展开当前所在篇与章；滚动定位当前节
+    tree.querySelectorAll('.p-head,.c-head').forEach(r=>
+      r.onclick=()=>r.parentElement.classList.toggle('open'));
+    const cur=tree.querySelector('.s.cur');
+    if(cur){
+      let c=cur.closest('.c'); if(c)c.classList.add('open');
+      let p=cur.closest('.p'); if(p)p.classList.add('open');
+      setTimeout(()=>cur.scrollIntoView({block:'center'}),80);
+    } else tree.querySelector('.p')?.classList.add('open');
+  };
+  document.head.appendChild(sc);
+})();
+</script>
+<script src="/report.js"></script>
+</body>
+</html>

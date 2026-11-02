@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>项目分析 · 北京理工大学信息技术创新学院</title>
+<script>
+// 登录守卫
+if (!localStorage.getItem('bit_user')) location.replace('login.html');
+</script>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#111a30; --panel2:#0d1528;
+    --txt:#dbe4ff; --dim:#7c8db5; --line:#22304f; --acc:#fbbf24;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    background:radial-gradient(1200px 600px at 20% -10%, #15224a 0%, var(--bg) 55%) fixed;
+    color:var(--txt); min-height:100vh; display:flex; flex-direction:column;
+  }
+  header{
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:14px 22px; background:rgba(11,16,32,.85); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line); position:sticky; top:0; z-index:10;
+  }
+  header .org{color:var(--acc);font-size:17px;font-weight:700;white-space:nowrap;letter-spacing:.5px;}
+  header h1{font-size:18px; font-weight:600;}
+  header .sp{flex:1;}
+  header a.home{
+    color:#7dd3fc; text-decoration:none; font-size:13px;
+    border:1px solid var(--line); padding:5px 12px; border-radius:8px;
+  }
+  header a.home:hover{background:var(--panel);}
+  header #uname{font-size:13px; color:var(--dim);}
+  main{flex:1; max-width:1000px; width:100%; margin:0 auto; padding:24px 20px 70px;}
+
+  /* 面包屑 */
+  .crumb{font-size:13px; color:var(--dim); margin-bottom:18px;}
+  .crumb a{color:#7dd3fc; text-decoration:none;}
+  .crumb a:hover{text-decoration:underline;}
+  .crumb .sep{margin:0 7px; opacity:.55;}
+
+  /* 标题区 */
+  .hero{display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap;
+    padding-bottom:20px; margin-bottom:24px; border-bottom:1px solid var(--line);}
+  .hero .no{flex:0 0 auto; font-family:Consolas,"Cascadia Mono","Courier New",monospace;
+    font-size:20px; font-weight:800; color:var(--acc); border:1px solid var(--line);
+    border-radius:12px; padding:9px 14px; letter-spacing:1px;}
+  .hero .tt{font-size:24px; font-weight:700; letter-spacing:.4px; line-height:1.45;}
+  .hero .meta{font-size:13px; color:var(--dim); margin-top:7px;}
+  .hero .cat{display:inline-block; margin-left:8px; padding:1px 9px; border-radius:20px;
+    font-size:12px; border:1px solid var(--line); color:#7dd3fc;}
+
+  /* 关键词 / 领域 胶囊 */
+  .chips{display:flex; flex-wrap:wrap; gap:7px; margin-top:14px;}
+  .chip{font-size:12.5px; padding:4px 12px; border-radius:20px;
+    background:rgba(125,211,252,.07); border:1px solid var(--line); color:var(--txt);}
+  .chip.dom{background:rgba(251,191,36,.08); border-color:rgba(251,191,36,.25);}
+
+  /* 详情区块 */
+  .sec{background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:20px 22px; margin-bottom:18px;}
+  .sec > h3{font-size:16.5px; font-weight:700; letter-spacing:.3px;
+    display:flex; align-items:center; gap:9px; margin-bottom:15px;}
+  .sec > h3::before{content:''; width:3px; height:15px; border-radius:2px; background:var(--acc); flex:0 0 auto;}
+  .sec > h3 .n{font-family:Consolas,"Cascadia Mono",monospace; font-size:12px;
+    color:var(--dim); font-weight:600; letter-spacing:1px;}
+
+  p.para{font-size:13.5px; line-height:2; color:var(--txt); word-break:break-word;}
+  .sec > * + *{margin-top:13px;}
+
+  /* 架构拆解 */
+  .arch{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px;}
+  .arch .ab{border:1px solid var(--line); border-radius:12px; padding:14px 16px;
+    background:rgba(255,255,255,.02);}
+  .arch .ab h4{font-size:14px; font-weight:700; color:#7dd3fc; margin-bottom:8px;
+    display:flex; align-items:center; gap:7px;}
+  .arch .ab h4::before{content:''; width:6px; height:6px; border-radius:50%; background:#7dd3fc; flex:0 0 auto;}
+  .arch .ab p, .arch .ab li{font-size:13px; line-height:1.9; color:var(--txt);}
+  .arch .ab ul{margin:0; padding-left:18px;}
+
+  /* 技术难点（编号） */
+  ol.hard{margin:0; padding:0; list-style:none; counter-reset:h;}
+  ol.hard li{counter-increment:h; position:relative; padding:10px 0 10px 34px;
+    font-size:13.5px; line-height:1.9; border-bottom:1px dashed var(--line);}
+  ol.hard li:last-child{border-bottom:none;}
+  ol.hard li::before{content:counter(h,decimal-leading-zero); position:absolute; left:0; top:10px;
+    font-family:Consolas,"Cascadia Mono",monospace; font-size:12px; font-weight:700;
+    color:var(--acc); opacity:.85;}
+
+  /* 表格 */
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th,td{text-align:left; padding:11px 12px; border-bottom:1px solid var(--line); line-height:1.7;
+    vertical-align:top;}
+  th{color:var(--dim); font-weight:600; font-size:13px; background:rgba(255,255,255,.02);}
+  th:first-child,td:first-child{border-top-left-radius:8px;}
+  th:last-child,td:last-child{border-top-right-radius:8px;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover td{background:rgba(125,211,252,.045);}
+  td:first-child{color:var(--txt); font-weight:600;}
+
+  /* 参考实现 */
+  .refs{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:10px;}
+  .refs a{display:flex; flex-direction:column; gap:5px; text-decoration:none;
+    border:1px solid var(--line); border-radius:12px; padding:13px 15px;
+    background:rgba(125,211,252,.04); transition:border-color .18s, transform .18s;}
+  .refs a:hover{border-color:#7dd3fc; transform:translateY(-2px);}
+  .refs .rt{display:flex; align-items:center; gap:8px; font-size:13.5px; color:#7dd3fc; font-weight:600;}
+  .refs .rt .ar{margin-left:auto; opacity:.8; flex:0 0 auto;}
+  .refs .rr{font-family:Consolas,"Cascadia Mono",monospace; font-size:11.5px; color:var(--dim);
+    word-break:break-all;}
+  .refs .rk{font-size:12.5px; color:var(--txt); line-height:1.7;}
+  .refs .rk b{color:var(--acc);}
+
+  /* 章节链接 */
+  .chs{display:flex; flex-wrap:wrap; gap:10px;}
+  .chs a{display:flex; align-items:center; gap:9px; text-decoration:none; color:var(--txt);
+    border:1px solid var(--line); border-radius:10px; padding:10px 15px; font-size:13px;
+    background:rgba(255,255,255,.02); transition:border-color .18s, transform .18s;}
+  .chs a:hover{border-color:var(--acc); transform:translateY(-2px);}
+  .chs a .cno{font-family:Consolas,"Cascadia Mono",monospace; font-size:12px;
+    font-weight:700; color:var(--acc);}
+  .chs a .car{opacity:.6; font-size:12px;}
+
+  /* 上/下一项 */
+  .pnav{display:flex; gap:12px; flex-wrap:wrap; margin-top:22px;}
+  .pnav a{flex:1; min-width:230px; display:flex; flex-direction:column; gap:5px;
+    text-decoration:none; color:var(--txt); border:1px solid var(--line); border-radius:12px;
+    padding:13px 17px; background:var(--panel); transition:border-color .18s, transform .18s;}
+  .pnav a:hover{border-color:var(--acc); transform:translateY(-2px);}
+  .pnav a .pl{font-size:12px; color:var(--dim);}
+  .pnav a .pt{font-size:13.5px; line-height:1.65;}
+  .pnav a.next{text-align:right; align-items:flex-end;}
+  .pnav .ph{flex:1; min-width:230px;}
+
+  .note{margin-top:22px; padding:15px 18px; border-radius:12px; font-size:13.5px; line-height:1.85;
+    background:rgba(125,211,252,.07); border-left:3px solid #7dd3fc; color:var(--txt);}
+  .note b{color:#7dd3fc;}
+  .note.warn{background:rgba(251,191,36,.07); border-left-color:var(--acc);}
+  .note.warn b{color:var(--acc);}
+  .note a{color:#7dd3fc;}
+  footer{text-align:center; font-size:12.5px; color:var(--dim); padding:30px 20px 10px;}
+  @media (max-width:640px){
+    .hero .tt{font-size:20px;}
+    .hero .no{font-size:17px; padding:7px 11px;}
+    .pnav a.next{text-align:left; align-items:flex-start;}
+  }
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+<header>
+  <span class="org">北京理工大学信息技术创新学院</span>
+  <h1 id="cn">项目分析</h1>
+  <span class="sp"></span>
+  <span id="uname"></span>
+  <a class="home" id="backList" href="assessment_detail.html">← 项目列表</a>
+  <a class="home" href="index.html">← 返回首页</a>
+</header>
+
+<main>
+  <div class="crumb" id="crumb"></div>
+  <div id="panel"></div>
+  <footer id="foot"></footer>
+</main>
+
+<script src="data/projects.js"></script>
+<script src="data/toc-oh_system.js"></script>
+<script>
+/* ===== 用户 ===== */
+try{
+  const u = JSON.parse(localStorage.getItem('bit_user')||'null');
+  if (u && u.name) document.getElementById('uname').textContent = '👤 ' + u.name;
+}catch(e){}
+
+/* ===== 参数 ===== */
+const qs = new URLSearchParams(location.search);
+const pid     = (qs.get('p') || '').toUpperCase();
+const courseId = qs.get('course') || 'oh_system';
+const itemId   = qs.get('item') || 'project';
+
+const ALL = (window.PROJECTS || []);
+const idx = ALL.findIndex(x => x.p === pid);
+const pr  = idx >= 0 ? ALL[idx] : null;
+
+const LIST_URL = 'assessment_detail.html?course=' + encodeURIComponent(courseId) +
+                 '&item=' + encodeURIComponent(itemId);
+const LIST_HREF = LIST_URL.replace(/&/g, '&amp;');
+document.getElementById('backList').href = LIST_URL;
+
+/* ===== 工具 ===== */
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function q(k, v){ return k + '=' + encodeURIComponent(v); }
+
+/* 章节号 → 页面地址（从课程目录数据里查，查不到就不给链接） */
+const CH_MAP = (function(){
+  const m = {};
+  const parts = window.COURSE_TOC || [];
+  parts.forEach(p => (p.chapters || []).forEach(ch => (ch.secs || []).forEach(s => {
+    if (s.no) m[s.no] = { t: s.t, page: s.page || '' };
+    (s.subs || []).forEach(sb => { if (sb.no) m[sb.no] = { t: sb.t, page: sb.page || '' }; });
+  })));
+  return m;
+})();
+
+const panel = document.getElementById('panel');
+const crumb = document.getElementById('crumb');
+const foot  = document.getElementById('foot');
+const REPO  = window.PROJECT_REPO_BASE || 'https://gitcode.com/openharmony/';
+
+/* ===== 未找到 ===== */
+if (!pr) {
+  crumb.innerHTML = '<a href="assessment.html?course=' + encodeURIComponent(courseId) +
+    '">课程考核</a><span class="sep">/</span><a href="' + LIST_HREF + '">可选项目列表</a>' +
+    '<span class="sep">/</span><b style="color:var(--txt)">未找到</b>';
+  panel.innerHTML = '<div class="sec"><h3>未找到该项目</h3>' +
+    '<p class="para">链接里的项目编号' + (pid ? '（' + esc(pid) + '）' : '') +
+    '不在当前项目列表中。请从「可选项目列表」选择一项进入，或检查链接是否完整。</p>' +
+    '<div class="note"><b>共 ' + ALL.length + ' 个项目：</b>' +
+    (ALL.length ? '编号范围 ' + ALL[0].p + '~' + ALL[ALL.length-1].p : '暂无数据') +
+    '。 <a href="' + LIST_HREF + '">返回项目列表 →</a></div></div>';
+  foot.textContent = '项目分析 · 北京理工大学信息技术创新学院';
+} else {
+
+  /* ---------- 面包屑 / 标题 ---------- */
+  crumb.innerHTML =
+    '<a href="assessment.html?course=' + encodeURIComponent(courseId) + '">课程考核</a>' +
+    '<span class="sep">/</span><a href="' + LIST_HREF + '">可选项目列表</a>' +
+    '<span class="sep">/</span><b style="color:var(--txt)">' + esc(pr.p) + '</b>';
+  document.getElementById('cn').textContent = pr.p + ' 项目分析';
+  document.title = pr.p + ' ' + pr.t + ' · 项目分析';
+
+  /* ---------- 各区块 ---------- */
+  const chips = (pr.tags || []).map(t => '<span class="chip">' + esc(t) + '</span>').join('');
+
+  // 1 定位与目标
+  const secGoal =
+    '<div class="sec"><h3><span class="n">01</span>项目定位与目标</h3>' +
+      '<p class="para">' + esc(pr.goal) + '</p>' +
+      (pr.domains && pr.domains.length
+        ? '<div class="chips">' + pr.domains.map(d => '<span class="chip dom">' + esc(d) + '</span>').join('') + '</div>'
+        : '') +
+    '</div>';
+
+  // 2 架构拆解
+  const archBody = (pr.arch || []).map(a =>
+    '<div class="ab"><h4>' + esc(a.h) + '</h4>' +
+      (a.p ? '<p>' + esc(a.p) + '</p>' : '') +
+      (a.list ? '<ul>' + a.list.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '') +
+    '</div>').join('');
+  const secArch = archBody
+    ? '<div class="sec"><h3><span class="n">02</span>架构拆解</h3><div class="arch">' + archBody + '</div></div>'
+    : '';
+
+  // 3 技术难点
+  const secHard = (pr.hard && pr.hard.length)
+    ? '<div class="sec"><h3><span class="n">03</span>技术难点</h3><ol class="hard">' +
+        pr.hard.map(h => '<li>' + esc(h) + '</li>').join('') + '</ol></div>'
+    : '';
+
+  // 4 技术路线对比
+  let secRoutes = '';
+  if (pr.routes && pr.routes.rows && pr.routes.rows.length) {
+    const head = (pr.routes.head || []).map(h => '<th>' + esc(h) + '</th>').join('');
+    const rows = pr.routes.rows.map(r =>
+      '<tr>' + r.map(c => '<td>' + esc(c) + '</td>').join('') + '</tr>').join('');
+    secRoutes = '<div class="sec"><h3><span class="n">04</span>可选技术路线对比</h3>' +
+      '<table><thead><tr>' + head + '</tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<p class="para" style="font-size:12.5px;color:var(--dim)">' +
+      '表中各路线为可评估的选项，不构成结论。选定路线后，需用实测数据说明取舍依据。</p></div>';
+  }
+
+  // 5 开源参考实现
+  const secRefs = (pr.refs && pr.refs.length)
+    ? '<div class="sec"><h3><span class="n">05</span>开源参考实现</h3><div class="refs">' +
+        pr.refs.map(r =>
+          '<a href="' + esc(REPO + r.r) + '" target="_blank" rel="noopener">' +
+            '<span class="rt">📦 ' + esc(r.z) + '<span class="ar">↗</span></span>' +
+            '<span class="rr">' + esc(r.r) + '</span>' +
+            (r.k ? '<span class="rk">建议追踪链路 · <b>' + esc(r.k) + '</b></span>' : '') +
+          '</a>').join('') +
+      '</div>' +
+      '<div class="note"><b>怎么用：</b>' +
+      '先在仓库里把上面那条「建议追踪链路」跑通，再落锚点。每一跳都要能写到' +
+      '「文件:行号#符号名」，写不出来的跳不算追过。</div></div>'
+    : '';
+
+  // 6 对应课程章节
+  const secCh = (pr.chapters && pr.chapters.length)
+    ? '<div class="sec"><h3><span class="n">06</span>对应课程章节</h3><div class="chs">' +
+        pr.chapters.map(c => {
+          const hit = CH_MAP[c.no];
+          const label = '<span class="cno">' + esc(c.no) + '</span>' +
+                        '<span>' + esc(c.t) + '</span>' +
+                        (hit && hit.page ? '<span class="car">进入 →</span>' : '');
+          return (hit && hit.page)
+            ? '<a href="' + esc(hit.page) + '?' + q('course', courseId) + '">' + label + '</a>'
+            : '<span class="chs-plain" style="display:flex;align-items:center;gap:9px;border:1px dashed var(--line);border-radius:10px;padding:10px 15px;font-size:13px;color:var(--dim)">' + label + '</span>';
+        }).join('') +
+      '</div></div>'
+    : '';
+
+  // 7 难度与团队规模
+  const secScale = pr.scale
+    ? '<div class="sec"><h3><span class="n">07</span>难度与团队规模建议</h3>' +
+        '<p class="para">' + esc(pr.scale) + '</p></div>'
+    : '';
+
+  // 8 评分要点对照
+  const secRubric = (pr.rubric && pr.rubric.length)
+    ? '<div class="sec"><h3><span class="n">08</span>评分要点对照</h3>' +
+        '<table><thead><tr><th style="width:34%">评审项目</th><th>本项目怎么拿分</th></tr></thead><tbody>' +
+        pr.rubric.map(r => '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td></tr>').join('') +
+        '</tbody></table>' +
+        '<p class="para" style="font-size:12.5px;color:var(--dim)">' +
+        '评分项与权重见「项目实践」页的评审规则（百分制），此处仅说明各评分项在本项目上的具体落点。</p></div>'
+    : '';
+
+  /* ---------- 上/下一项 ---------- */
+  const prev = idx > 0 ? ALL[idx - 1] : null;
+  const next = idx < ALL.length - 1 ? ALL[idx + 1] : null;
+  const pnav =
+    '<div class="pnav">' +
+      (prev
+        ? '<a href="project_detail.html?' + q('p', prev.p) + '&amp;' + q('course', courseId) + '">' +
+            '<span class="pl">← 上一项 ' + esc(prev.p) + '</span>' +
+            '<span class="pt">' + esc(prev.t) + '</span></a>'
+        : '<span class="ph"></span>') +
+      (next
+        ? '<a class="next" href="project_detail.html?' + q('p', next.p) + '&amp;' + q('course', courseId) + '">' +
+            '<span class="pl">下一项 ' + esc(next.p) + ' →</span>' +
+            '<span class="pt">' + esc(next.t) + '</span></a>'
+        : '<span class="ph"></span>') +
+    '</div>';
+
+  /* ---------- 组装 ---------- */
+  panel.innerHTML =
+    '<div class="hero">' +
+      '<span class="no">' + esc(pr.p) + '</span>' +
+      '<div style="flex:1;min-width:260px">' +
+        '<div class="tt">' + esc(pr.t) + '</div>' +
+        '<div class="meta">' + esc(pr.cat) + '<span class="cat">可选项目</span></div>' +
+        '<div class="chips">' + chips + '</div>' +
+      '</div>' +
+    '</div>' +
+    secGoal + secArch + secHard + secRoutes + secRefs + secCh + secScale + secRubric +
+    '<div class="note warn"><b>提示：</b>本页分析用于选题与开题参考，' +
+    '最终以「项目实践」页公布的评审规则与提交要求为准。全部结论需落到' +
+    '「文件:行号#符号名」级锚点证据后才写入报告。</div>' +
+    pnav;
+
+  foot.textContent = pr.p + ' · ' + pr.cat + ' · 北京理工大学信息技术创新学院';
+}
+</script>
+</body>
+</html>

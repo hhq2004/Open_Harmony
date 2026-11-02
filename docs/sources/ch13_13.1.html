@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>13.1 性能分析方法论 · 北京理工大学信息技术创新学院</title>
+<script>
+const ROOT='../../../';
+if (!localStorage.getItem('bit_user')) location.replace(ROOT+'login.html');
+</script>
+<style>
+  :root{--bg:#0b1020;--panel:#111a30;--panel2:#0d1528;--txt:#dbe4ff;--dim:#7c8db5;--line:#22304f;--acc:#60a5fa;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    background:radial-gradient(1200px 600px at 20% -10%,#0d1e3d 0%,var(--bg) 55%) fixed;
+    color:var(--txt);min-height:100vh;display:flex;flex-direction:column;}
+  header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 22px;
+    background:rgba(11,16,32,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:10;}
+  header .org{color:var(--acc);font-size:17px;font-weight:700;white-space:nowrap;letter-spacing:.5px;}
+  header h1{font-size:18px;font-weight:600;}
+  header .sp{flex:1;}
+  header a.home{color:#7dd3fc;text-decoration:none;font-size:13px;border:1px solid var(--line);padding:5px 12px;border-radius:8px;}
+  header a.home:hover{background:var(--panel);}
+  header #uname{font-size:13px;color:var(--dim);}
+  main{flex:1;width:auto;margin:0;padding:28px 24px 50px;transition:padding .28s;}
+  /* ===== 左侧目录树：宽屏常驻可收起 / 窄屏抽屉 ===== */
+  #sideToggle{display:none;border:1px solid var(--line);background:var(--panel);color:var(--acc);
+    font-size:13px;cursor:pointer;padding:4px 10px;border-radius:8px;}
+  #sidebar{position:fixed;top:64px;left:0;bottom:0;width:340px;z-index:40;
+    overflow-y:auto;padding:14px 10px 30px 16px;transform:translateX(-100%);
+    transition:transform .28s ease;
+    background:linear-gradient(180deg,rgba(13,21,40,.55),rgba(13,21,40,.25));
+    mask-image:linear-gradient(180deg,#000 92%,transparent);}
+  #sbCollapse{display:none;position:absolute;top:76px;right:-14px;width:28px;height:28px;
+    border:1px solid var(--line);border-radius:50%;background:var(--panel);
+    color:var(--dim);font-size:12px;cursor:pointer;z-index:41;line-height:26px;text-align:center;
+    box-shadow:0 2px 10px rgba(0,0,0,.35);}
+  #sbCollapse:hover{color:#7dd3fc;border-color:#7dd3fc;}
+  @media (min-width:1200px){
+    #sidebar{transform:translateX(0);}
+    body:not(.sb-hide) #sidebar{box-shadow:none;}
+    body:not(.sb-hide) main{margin-left:364px;padding-left:36px;}
+      body.sb-hide #sidebar{transform:translateX(-100%);}
+    body.sb-hide #sideToggle{display:inline-block;}
+    #sbMask.show{display:none;}
+    #sbCollapse{display:block;}
+    #sbClose{display:none;}
+    #sideToggle{display:none;}
+  }
+  body.sb-hide main{padding-left:0;transition:padding .28s;}
+  #sidebar.open{transform:translateX(0);box-shadow:8px 0 30px rgba(0,0,0,.45);}
+  #sidebar .sbHead{display:flex;align-items:center;justify-content:space-between;
+    padding:2px 8px 12px;margin-bottom:6px;}
+  #sidebar .sbHead .tt{font-size:13px;color:var(--dim);font-weight:500;letter-spacing:2px;}
+  #sidebar .sbHead button{border:none;background:transparent;color:var(--dim);font-size:16px;cursor:pointer;}
+  .srow{display:flex;align-items:center;gap:8px;user-select:none;transition:color .15s;}
+  .scaret{display:inline-block;width:14px;flex:0 0 auto;transition:transform .2s,color .15s;
+    color:#57689a;font-size:9px;}
+  #sidebar .p{margin:0;}
+  #sidebar .p > .srow{padding:13px 10px;cursor:pointer;font-weight:700;font-size:15px;
+    color:var(--txt);border-radius:10px;}
+  #sidebar .p > .srow:hover{color:#fcd34d;}
+  #sidebar .p > .srow:hover .scaret{color:var(--acc);}
+  #sidebar .pkids{overflow:hidden;max-height:0;transition:max-height .3s ease;margin-left:6px;}
+  #sidebar .p.open > .pkids{max-height:20000px;}
+  #sidebar .p.open > .srow .scaret{transform:rotate(90deg);}
+  #sidebar .c{margin-left:14px;}
+  #sidebar .c > .srow{padding:10px 10px;cursor:pointer;font-weight:400;font-size:13px;
+    color:var(--txt);margin-left:24px;border-radius:8px;}
+  #sidebar .c > .srow:hover{color:#fff;}
+  #sidebar .c > .srow:hover .scaret{color:var(--txt);}
+  #sidebar .c.open > .srow{color:#fff;}
+  #sidebar .c.open > .srow .scaret{transform:rotate(90deg);}
+  #sidebar .ckids{overflow:hidden;max-height:0;transition:max-height .3s ease;margin-left:44px;}
+  #sidebar .c.open > .ckids{max-height:12000px;}
+  #sidebar .s{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:13px;
+    color:#93a5cd;cursor:pointer;line-height:1.45;text-decoration:none;border-radius:8px;}
+  #sidebar .s .no{color:#57689a;font-size:12px;min-width:42px;flex:0 0 auto;}
+  #sidebar .s:hover{color:#fbbf24;}
+  #sidebar .s.cur{color:#fbbf24;font-weight:600;}
+  #sidebar .s.s2{font-size:12.5px;color:#7c8db5;padding:6px 10px 6px 26px;}
+  #sidebar .s.s2 .no{font-size:11px;color:#45557c;}
+  #sidebar .s.s2:hover{color:#fbbf24;}
+  #sidebar .s.s2.cur{color:#fbbf24;font-weight:600;}
+  #sbMask{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:49;display:none;}
+  #sbMask.show{display:block;}
+  .crumb{color:var(--dim);font-size:13px;margin-bottom:20px;}
+  .crumb b{color:#7dd3fc;}.crumb .sep{margin:0 8px;color:#45557c;}
+  h2.title{font-size:24px;margin-bottom:6px;}
+  .subtitle{color:var(--dim);font-size:14px;margin-bottom:26px;}
+  .ov{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px 28px;margin-bottom:22px;
+    line-height:2;font-size:14.5px;color:var(--txt);}
+  .ov p{margin-bottom:12px;color:var(--dim);}
+  .ov p b,.ov p code{color:var(--txt);}
+  .ov p code{background:#0a1122;padding:1px 7px;border-radius:5px;color:#7dd3fc;font-size:13px;font-family:Consolas,"Microsoft YaHei",monospace;}
+  .ov p:last-child{margin-bottom:0;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px 28px;margin-bottom:22px;}
+  .card h3{font-size:18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+  .card h3 .dot{width:8px;height:8px;border-radius:50%;background:#3b82f6;box-shadow:0 0 10px #3b82f6;}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;}
+  .k{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px 18px;border-top:3px solid var(--kc,#3b82f6);}
+  .k .t{font-weight:600;font-size:15px;margin-bottom:7px;}
+  .k .t .ic{margin-right:7px;}
+  .k .d{color:var(--dim);font-size:13px;line-height:1.75;}
+  .k .d code{background:#0a1122;padding:0 5px;border-radius:4px;color:#7dd3fc;font-size:11.5px;}
+  .tb{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .tb th,.tb td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;}
+  .tb th{color:#7dd3fc;font-weight:600;}
+  .tb td{color:var(--dim);} .tb td b{color:var(--txt);}
+  .tb td code{background:#0a1122;padding:1px 6px;border-radius:5px;color:#7dd3fc;font-size:12px;font-family:Consolas,"Microsoft YaHei",monospace;}
+  .tb tr:last-child td{border-bottom:none;}
+  .code{background:#070c18;border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+    font-family:Consolas,"Cascadia Mono","Courier New","Microsoft YaHei",monospace;
+    font-size:12.5px;line-height:1.75;white-space:pre;overflow-x:auto;}
+  .code .kw{color:#d8b4fe;font-weight:700;}
+  .code .fn{color:#7dd3fc;}
+  .code .num{color:#fde047;}
+  .code .cm{color:#8b9dc9;font-style:italic;}
+  .code .str{color:#86efac;}
+  .code .ty{color:#f9a8d4;}
+  .code .str{color:#86efac;}.code .t{color:#f472b6;}
+  .step{display:flex;gap:14px;margin-bottom:14px;align-items:flex-start;}
+  .step .n{width:30px;height:30px;border-radius:50%;background:#3b82f6;color:#fff;font-weight:700;
+    display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto;}
+  .step .b{flex:1;}
+  .step .b .st{font-weight:600;font-size:14.5px;margin-bottom:3px;}
+  .step .b .sd{color:var(--dim);font-size:13px;line-height:1.7;}
+  .step .b .sd code{background:#0a1122;padding:1px 6px;border-radius:4px;color:#7dd3fc;font-size:12px;font-family:Consolas,"Microsoft YaHei",monospace;}
+  .note{font-size:13px;color:#fbbf24;background:rgba(251,191,36,.07);
+    border-left:3px solid #fbbf24;border-radius:6px;padding:9px 13px;margin-top:14px;line-height:1.7;}
+  .warn{margin-top:10px;font-size:12.5px;color:#f87171;background:rgba(244,63,94,.08);
+    border-left:3px solid #f43f5e;border-radius:6px;padding:8px 12px;line-height:1.7;}
+  .tip{margin-top:10px;font-size:12.5px;color:#4ade80;background:rgba(34,197,94,.08);
+    border-left:3px solid #22c55e;border-radius:6px;padding:8px 12px;line-height:1.7;}
+  .prevnext{display:flex;justify-content:space-between;gap:12px;margin-top:6px;}
+  .prevnext a{flex:1;text-align:center;padding:12px;border-radius:12px;border:1px solid var(--line);
+    background:var(--panel);color:var(--txt);text-decoration:none;font-size:13.5px;transition:border-color .2s;}
+  .prevnext a:hover{border-color:#7dd3fc;color:#7dd3fc;}
+  .prevnext a span{display:block;font-size:11px;color:var(--dim);margin-bottom:3px;}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(120,141,181,.35);border-radius:10px;
+    border:2px solid transparent;background-clip:padding-box;min-height:32px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(120,141,181,.6);}
+  html{scrollbar-width:thin;scrollbar-color:rgba(120,141,181,.4) transparent;}
+</style>
+<script src="../../../theme.js"></script>
+</head>
+<body>
+<header>
+  <button id="sideToggle" title="目录">☰ 目录</button>
+  <span class="org">北京理工大学信息技术创新学院</span>
+  <h1>性能分析方法论</h1>
+  <span class="sp"></span>
+  <span id="uname"></span>
+  <a class="home" id="backCh" href="#">← 返回目录</a>
+</header>
+<nav id="sidebar" aria-label="章节目录">
+  <button id="sbCollapse" title="收起目录">≪</button>
+  <div class="sbHead"><span class="tt">📚 章节目录</span><button id="sbClose" title="收起">✕</button></div>
+  <div id="sbTree"></div>
+</nav>
+<div id="sbMask"></div>
+<main>
+  <div class="crumb" id="crumb"></div>
+  <h2 class="title">13.1 性能分析方法论</h2>
+  <div class="subtitle">13.1 性能分析方法论</div>
+<div class="ov"><p>系统级性能三板斧：<b>HiTrace（跨进程时序）+ Perf（热点采样）+ HiSysEvent（打点指标）</b>。方法论：先定位（哪段慢）→ 再归因（为什么慢）→ 后优化。</p></div>
+<div class="card"><h3><span class="dot"></span>典型场景：启动慢归因</h3><div class="code"><span class="cm"># 1) 拿时序</span>
+hdc shell bytrace -t <span class="num">10</span> app sched freq idle &gt; t.gz
+<span class="cm"># Perfetto 打开 → 找长空闲/长阻塞段</span>
+<span class="cm"># 2) 找热点（native）</span>
+hdc shell hiprofiler_cmd -t perf -o /data/perf.data
+<span class="cm"># 3) 打点核对</span>
+hilog | grep <span class="fn">HiSysEvent</span>(STARTUP_xxx)
+<span class="cm"># 常见元凶：串行 IO、同步等驱动、首帧前重布局</span></div></div>
+  <div class="prevnext">
+    <a id="prevA" href="#"><span>← 上一节</span></a>
+    <a id="nextA" href="#"><span>下一节 →</span></a>
+  </div>
+</main>
+<script>
+try{const u=JSON.parse(localStorage.getItem('bit_user')||'null');if(u&&u.name)document.getElementById('uname').textContent='👤 '+u.name;}catch(e){}
+const courseId=new URLSearchParams(location.search).get('course')||'oh_system';
+document.getElementById('backCh').href=ROOT+'chapters.html?course='+encodeURIComponent(courseId);
+document.getElementById('crumb').innerHTML='<b>第五部分：系统优化与综合实践</b><span class="sep">›</span><b>第13章 性能与功耗优化</b><span class="sep">›</span>13.1 性能分析方法论';
+document.getElementById('prevA').href="../../ch12/12.2/index.html?course=oh_system";
+document.getElementById('prevA').innerHTML='<span>← 上一节</span>12.2 权限与沙箱机制';
+document.getElementById('nextA').href="../13.2/index.html?course=oh_system";
+document.getElementById('nextA').innerHTML='<span>下一节 →</span>13.2 功耗治理（HiView / HDF 电源）';
+/* ===== 左侧目录树：拉取本课程 toc 渲染，当前节高亮 ===== */
+(function(){
+  const MY_NO='13.1';
+  const sb=document.getElementById('sidebar'),mask=document.getElementById('sbMask');
+  const open=()=>{sb.classList.add('open');mask.classList.add('show');};
+  const close=()=>{sb.classList.remove('open');mask.classList.remove('show');};
+  const wide=()=>window.matchMedia('(min-width:1200px)').matches;
+  const colBtn=document.getElementById('sbCollapse');
+  const tgBtn=document.getElementById('sideToggle');
+  const hide=()=>{document.body.classList.add('sb-hide');try{localStorage.setItem('sbHide','1')}catch(e){}};
+  const show=()=>{document.body.classList.remove('sb-hide');try{localStorage.removeItem('sbHide')}catch(e){}};
+  if(colBtn) colBtn.onclick=hide;
+  tgBtn.onclick=()=>{ if(wide()){show();} else open(); };
+  document.getElementById('sbClose').onclick=close;
+  mask.onclick=close;
+  try{ if(localStorage.getItem('sbHide')==='1') document.body.classList.add('sb-hide'); }catch(e){}
+  const sc=document.createElement('script');
+  sc.src=ROOT+'data/toc-'+courseId+'.js?v='+Date.now();
+  sc.onload=()=>{
+    const TOC=window.COURSE_TOC||[];
+    const tree=document.getElementById('sbTree');
+    const curPage='part4/ch13/13.1/index.html';
+    let html='';
+    TOC.forEach(pt=>{
+      const chs=pt.chapters.map(ch=>{
+        const kids=ch.secs.map(s=>{
+          let sh='<a class="s'+(s.page===curPage?' cur':'')+'" href="'+ROOT+s.page+'?course='+courseId+'">'+
+                 '<span class="no">'+s.no+'</span><span>'+s.t+'</span></a>';
+          (s.subs||[]).forEach(x=>{
+            sh+='<a class="s s2'+(x.page===curPage?' cur':'')+'" href="'+ROOT+x.page+'?course='+courseId+'">'+
+                '<span class="no">'+x.no+'</span><span>'+x.t+'</span></a>';
+          });
+          return sh;
+        }).join('');
+        return '<div class="c"><div class="srow c-head"><span class="scaret">▶</span><span>'+ch.ch+'</span></div>'+
+               '<div class="ckids">'+kids+'</div></div>';
+      }).join('');
+      html+='<div class="p"><div class="srow p-head"><span class="scaret">▶</span><span>📚 '+
+            pt.part.replace(/^[^：:]*[：:]/,'')+'</span></div>'+
+            '<div class="pkids">'+chs+'</div></div>';
+    });
+    tree.innerHTML=html;
+    // 篇/章折叠；默认展开当前所在篇与章；滚动定位当前节
+    tree.querySelectorAll('.p-head,.c-head').forEach(r=>
+      r.onclick=()=>r.parentElement.classList.toggle('open'));
+    const cur=tree.querySelector('.s.cur');
+    if(cur){
+      let c=cur.closest('.c'); if(c)c.classList.add('open');
+      let p=cur.closest('.p'); if(p)p.classList.add('open');
+      setTimeout(()=>cur.scrollIntoView({block:'center'}),80);
+    } else tree.querySelector('.p')?.classList.add('open');
+  };
+  document.head.appendChild(sc);
+})();
+</script>
+<script src="/report.js"></script>
+</body>
+</html>

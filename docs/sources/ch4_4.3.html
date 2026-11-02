@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>4.3 进程、线程与调度 · 北京理工大学信息技术创新学院</title>
+<script>
+const ROOT='../../../';
+if (!localStorage.getItem('bit_user')) location.replace(ROOT+'login.html');
+</script>
+<style>
+  :root{--bg:#0b1020;--panel:#111a30;--panel2:#0d1528;--txt:#dbe4ff;--dim:#7c8db5;--line:#22304f;--acc:#60a5fa;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    background:radial-gradient(1200px 600px at 20% -10%,#0d1e3d 0%,var(--bg) 55%) fixed;
+    color:var(--txt);min-height:100vh;display:flex;flex-direction:column;}
+  header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 22px;
+    background:rgba(11,16,32,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:10;}
+  header .org{color:var(--acc);font-size:17px;font-weight:700;white-space:nowrap;letter-spacing:.5px;}
+  header h1{font-size:18px;font-weight:600;}
+  header .sp{flex:1;}
+  header a.home{color:#7dd3fc;text-decoration:none;font-size:13px;border:1px solid var(--line);padding:5px 12px;border-radius:8px;}
+  header a.home:hover{background:var(--panel);}
+  header #uname{font-size:13px;color:var(--dim);}
+  main{flex:1;width:auto;margin:0;padding:28px 24px 50px;transition:padding .28s;}
+  /* ===== 左侧目录树：宽屏常驻可收起 / 窄屏抽屉 ===== */
+  #sideToggle{display:none;border:1px solid var(--line);background:var(--panel);color:var(--acc);
+    font-size:13px;cursor:pointer;padding:4px 10px;border-radius:8px;}
+  #sidebar{position:fixed;top:64px;left:0;bottom:0;width:340px;z-index:40;
+    overflow-y:auto;padding:14px 10px 30px 16px;transform:translateX(-100%);
+    transition:transform .28s ease;
+    background:linear-gradient(180deg,rgba(13,21,40,.55),rgba(13,21,40,.25));
+    mask-image:linear-gradient(180deg,#000 92%,transparent);}
+  #sbCollapse{display:none;position:absolute;top:76px;right:-14px;width:28px;height:28px;
+    border:1px solid var(--line);border-radius:50%;background:var(--panel);
+    color:var(--dim);font-size:12px;cursor:pointer;z-index:41;line-height:26px;text-align:center;
+    box-shadow:0 2px 10px rgba(0,0,0,.35);}
+  #sbCollapse:hover{color:#7dd3fc;border-color:#7dd3fc;}
+  @media (min-width:1200px){
+    #sidebar{transform:translateX(0);}
+    body:not(.sb-hide) #sidebar{box-shadow:none;}
+    body:not(.sb-hide) main{margin-left:364px;padding-left:36px;}
+      body.sb-hide #sidebar{transform:translateX(-100%);}
+    body.sb-hide #sideToggle{display:inline-block;}
+    #sbMask.show{display:none;}
+    #sbCollapse{display:block;}
+    #sbClose{display:none;}
+    #sideToggle{display:none;}
+  }
+  body.sb-hide main{padding-left:0;transition:padding .28s;}
+  #sidebar.open{transform:translateX(0);box-shadow:8px 0 30px rgba(0,0,0,.45);}
+  #sidebar .sbHead{display:flex;align-items:center;justify-content:space-between;
+    padding:2px 8px 12px;margin-bottom:6px;}
+  #sidebar .sbHead .tt{font-size:13px;color:var(--dim);font-weight:500;letter-spacing:2px;}
+  #sidebar .sbHead button{border:none;background:transparent;color:var(--dim);font-size:16px;cursor:pointer;}
+  .srow{display:flex;align-items:center;gap:8px;user-select:none;transition:color .15s;}
+  .scaret{display:inline-block;width:14px;flex:0 0 auto;transition:transform .2s,color .15s;
+    color:#57689a;font-size:9px;}
+  #sidebar .p{margin:0;}
+  #sidebar .p > .srow{padding:13px 10px;cursor:pointer;font-weight:700;font-size:15px;
+    color:var(--txt);border-radius:10px;}
+  #sidebar .p > .srow:hover{color:#fcd34d;}
+  #sidebar .p > .srow:hover .scaret{color:var(--acc);}
+  #sidebar .pkids{overflow:hidden;max-height:0;transition:max-height .3s ease;margin-left:6px;}
+  #sidebar .p.open > .pkids{max-height:20000px;}
+  #sidebar .p.open > .srow .scaret{transform:rotate(90deg);}
+  #sidebar .c{margin-left:14px;}
+  #sidebar .c > .srow{padding:10px 10px;cursor:pointer;font-weight:400;font-size:13px;
+    color:var(--txt);margin-left:24px;border-radius:8px;}
+  #sidebar .c > .srow:hover{color:#fff;}
+  #sidebar .c > .srow:hover .scaret{color:var(--txt);}
+  #sidebar .c.open > .srow{color:#fff;}
+  #sidebar .c.open > .srow .scaret{transform:rotate(90deg);}
+  #sidebar .ckids{overflow:hidden;max-height:0;transition:max-height .3s ease;margin-left:44px;}
+  #sidebar .c.open > .ckids{max-height:12000px;}
+  #sidebar .s{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:13px;
+    color:#93a5cd;cursor:pointer;line-height:1.45;text-decoration:none;border-radius:8px;}
+  #sidebar .s .no{color:#57689a;font-size:12px;min-width:42px;flex:0 0 auto;}
+  #sidebar .s:hover{color:#fbbf24;}
+  #sidebar .s.cur{color:#fbbf24;font-weight:600;}
+  #sidebar .s.s2{font-size:12.5px;color:#7c8db5;padding:6px 10px 6px 26px;}
+  #sidebar .s.s2 .no{font-size:11px;color:#45557c;}
+  #sidebar .s.s2:hover{color:#fbbf24;}
+  #sidebar .s.s2.cur{color:#fbbf24;font-weight:600;}
+  #sbMask{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:49;display:none;}
+  #sbMask.show{display:block;}
+  .crumb{color:var(--dim);font-size:13px;margin-bottom:20px;}
+  .crumb b{color:#7dd3fc;}.crumb .sep{margin:0 8px;color:#45557c;}
+  h2.title{font-size:24px;margin-bottom:6px;}
+  .subtitle{color:var(--dim);font-size:14px;margin-bottom:26px;}
+  .ov{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px 28px;margin-bottom:22px;
+    line-height:2;font-size:14.5px;color:var(--txt);}
+  .ov p{margin-bottom:12px;color:var(--dim);}
+  .ov p b,.ov p code{color:var(--txt);}
+  .ov p code{background:#0a1122;padding:1px 7px;border-radius:5px;color:#7dd3fc;font-size:13px;font-family:Consolas,"Microsoft YaHei",monospace;}
+  .ov p:last-child{margin-bottom:0;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px 28px;margin-bottom:22px;}
+  .card h3{font-size:18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+  .card h3 .dot{width:8px;height:8px;border-radius:50%;background:#3b82f6;box-shadow:0 0 10px #3b82f6;}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;}
+  .k{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px 18px;border-top:3px solid var(--kc,#3b82f6);}
+  .k .t{font-weight:600;font-size:15px;margin-bottom:7px;}
+  .k .t .ic{margin-right:7px;}
+  .k .d{color:var(--dim);font-size:13px;line-height:1.75;}
+  .k .d code{background:#0a1122;padding:0 5px;border-radius:4px;color:#7dd3fc;font-size:11.5px;}
+  .tb{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .tb th,.tb td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;}
+  .tb th{color:#7dd3fc;font-weight:600;}
+  .tb td{color:var(--dim);} .tb td b{color:var(--txt);}
+  .tb td code{background:#0a1122;padding:1px 6px;border-radius:5px;color:#7dd3fc;font-size:12px;font-family:Consolas,"Microsoft YaHei",monospace;}
+  .tb tr:last-child td{border-bottom:none;}
+  .code{background:#070c18;border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+    font-family:Consolas,"Cascadia Mono","Courier New","Microsoft YaHei",monospace;
+    font-size:12.5px;line-height:1.75;white-space:pre;overflow-x:auto;}
+  .code .kw{color:#d8b4fe;font-weight:700;}
+  .code .fn{color:#7dd3fc;}
+  .code .num{color:#fde047;}
+  .code .cm{color:#8b9dc9;font-style:italic;}
+  .code .str{color:#86efac;}
+  .code .ty{color:#f9a8d4;}
+  .code .str{color:#86efac;}.code .t{color:#f472b6;}
+  .step{display:flex;gap:14px;margin-bottom:14px;align-items:flex-start;}
+  .step .n{width:30px;height:30px;border-radius:50%;background:#3b82f6;color:#fff;font-weight:700;
+    display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto;}
+  .step .b{flex:1;}
+  .step .b .st{font-weight:600;font-size:14.5px;margin-bottom:3px;}
+  .step .b .sd{color:var(--dim);font-size:13px;line-height:1.7;}
+  .step .b .sd code{background:#0a1122;padding:1px 6px;border-radius:4px;color:#7dd3fc;font-size:12px;font-family:Consolas,"Microsoft YaHei",monospace;}
+  .note{font-size:13px;color:#fbbf24;background:rgba(251,191,36,.07);
+    border-left:3px solid #fbbf24;border-radius:6px;padding:9px 13px;margin-top:14px;line-height:1.7;}
+  .warn{margin-top:10px;font-size:12.5px;color:#f87171;background:rgba(244,63,94,.08);
+    border-left:3px solid #f43f5e;border-radius:6px;padding:8px 12px;line-height:1.7;}
+  .tip{margin-top:10px;font-size:12.5px;color:#4ade80;background:rgba(34,197,94,.08);
+    border-left:3px solid #22c55e;border-radius:6px;padding:8px 12px;line-height:1.7;}
+  .prevnext{display:flex;justify-content:space-between;gap:12px;margin-top:6px;}
+  .prevnext a{flex:1;text-align:center;padding:12px;border-radius:12px;border:1px solid var(--line);
+    background:var(--panel);color:var(--txt);text-decoration:none;font-size:13.5px;transition:border-color .2s;}
+  .prevnext a:hover{border-color:#7dd3fc;color:#7dd3fc;}
+  .prevnext a span{display:block;font-size:11px;color:var(--dim);margin-bottom:3px;}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(120,141,181,.35);border-radius:10px;
+    border:2px solid transparent;background-clip:padding-box;min-height:32px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(120,141,181,.6);}
+  html{scrollbar-width:thin;scrollbar-color:rgba(120,141,181,.4) transparent;}
+</style>
+<script src="../../../theme.js"></script>
+</head>
+<body>
+<header>
+  <button id="sideToggle" title="目录">☰ 目录</button>
+  <span class="org">北京理工大学信息技术创新学院</span>
+  <h1>进程、线程与调度</h1>
+  <span class="sp"></span>
+  <span id="uname"></span>
+  <a class="home" id="backCh" href="#">← 返回目录</a>
+</header>
+<nav id="sidebar" aria-label="章节目录">
+  <button id="sbCollapse" title="收起目录">≪</button>
+  <div class="sbHead"><span class="tt">📚 章节目录</span><button id="sbClose" title="收起">✕</button></div>
+  <div id="sbTree"></div>
+</nav>
+<div id="sbMask"></div>
+<main>
+  <div class="crumb" id="crumb"></div>
+  <h2 class="title">4.3 进程、线程与调度</h2>
+  <div class="subtitle">4.3 进程、线程与调度</div>
+<div class="ov">
+<p>4.2 结尾留了一个问题：任务挂到就绪队列之后，<b>谁来选中它执行</b>？这一节讲调度器。它每次被唤醒只做两个决定：<b>选谁</b>（下一个跑哪个任务）、<b>何时换</b>（什么时候重新选）。</p>
+<p>三种内核的目标完全不同：<b>RTOS 追求确定性</b>——最坏情况必须在预期之内；<b>Linux 追求公平与吞吐</b>——长期看每个任务拿到应得的份额。目标不同，数据结构就不同：LiteOS-M 用<b>位图 + 32 条链表</b>换 O(1)；Linux 用<b>红黑树</b>换公平。</p>
+<p>本节从 LiteOS-M 的源码切入（结构最简单、最能看清调度本质），再对照 LiteOS-A 的两级队列与 Linux 的 CFS/EEVDF。</p>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>先更正原页面的两处错误</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:12px;">这一节的原版内容有两处会误导人的地方，如果你之前读过，请以本版为准。</p>
+  <div class="warn">⚠️ <b>① 优先级数量写错了。</b>原文写「<b>256 优先级抢占</b>」。LiteOS-M 实际是 <b>32 个优先级（0~31，0 最高）</b>。那个 <code>256</code> 是 <code>LOSCFG_BASE_CORE_TSK_LIMIT</code>（<b>最大任务数</b>），把「任务数上限」误当成了「优先级数」。</div>
+  <div class="warn" style="margin-top:10px;">⚠️ <b>② 位图置位方向反了。</b>原文写 <code>g_queueBitmap |= 1 &lt;&lt; priority</code>，实际是 <code>PRIQUEUE_PRIOR0_BIT &gt;&gt; priority</code>（<code>0x80000000</code> <b>右移</b>）。方向反了，<code>CLZ</code> 取到的就是反过来的优先级——最高优先级会被当成最低。下一张卡专门讲这个。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>先把六个词说清</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:14px;">调度这一节的困惑，多半来自名词混用（尤其「进程/线程/任务」）。先把词定死。</p>
+  <table class="tb">
+    <thead><tr><th style="width:20%">术语</th><th>含义</th><th style="width:26%">在 LiteOS-M 上成立吗</th></tr></thead>
+    <tbody>
+      <tr><td><b>任务 / 线程</b></td><td>CPU 调度的<b>最小单元</b>，有自己的栈和寄存器现场</td><td>✅ 只有这个</td></tr>
+      <tr><td><b>进程</b></td><td><b>资源</b>的归属单元：独立地址空间、文件描述符表</td><td>❌ 不存在</td></tr>
+      <tr><td><b>优先级</b></td><td>数字越小越优先（RTOS 惯例）。决定「谁能抢占谁」</td><td>✅ 0~31</td></tr>
+      <tr><td><b>就绪队列</b></td><td>「已具备运行条件、等 CPU」的任务待的地方。<b>不包含正在跑的</b></td><td>✅ 32 条链表</td></tr>
+      <tr><td><b>时间片</b></td><td>同优先级任务轮流跑，每次最多跑多久</td><td>✅ 可配置（默认 10 tick）</td></tr>
+      <tr><td><b>抢占</b></td><td>高优先级任务一就绪，立刻打断正在跑的低优先级任务</td><td>✅ 抢占式</td></tr>
+    </tbody>
+  </table>
+  <div class="note">📌 一条容易记混的规则：<b>优先级只在「不同优先级」之间生效，时间片只在「同优先级」之间生效</b>。两者不是二选一，而是分层配合——先比优先级，同优先级才轮转。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>三种内核，三种调度实体</h3>
+  <table class="tb">
+    <thead><tr><th style="width:14%">内核</th><th style="width:26%">调度单元</th><th style="width:24%">优先级范围</th><th>选择依据</th></tr></thead>
+    <tbody>
+      <tr><td><b>LiteOS-M</b></td><td>任务（等价线程）</td><td>0~31，<b>0 最高</b></td><td>最高优先级 → 同级时间片轮转</td></tr>
+      <tr><td><b>LiteOS-A</b></td><td><b>线程</b>（进程是资源容器）</td><td>进程 0~31 / 线程 0~31，静态</td><td>进程优先级 + 线程优先级两级</td></tr>
+      <tr><td><b>Linux</b></td><td>task（线程）</td><td>nice −20~19 映射权重</td><td>vruntime / 虚拟截止时间</td></tr>
+    </tbody>
+  </table>
+  <div class="tip">💡 一个反复出现的概念：<b>三种内核调度的最小单元都是「线程」，不是「进程」</b>。进程只是资源的壳——这条在 LiteOS-A 和 Linux 上完全一致，在 LiteOS-M 上则干脆没有进程这个概念。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>LiteOS-M 就绪队列：源码级</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:14px;">整个调度器最核心的数据结构只有两个变量：<b>一组链表</b>和<b>一个 32 位整数</b>。</p>
+  <div class="code"><span class="cm">// kernel/include/los_sched.h</span>
+<span class="kw">#define</span> OS_PRIORITY_QUEUE_NUM   <span class="num">32</span>
+<span class="kw">#define</span> PRIQUEUE_PRIOR0_BIT     <span class="num">0x80000000U</span>   <span class="cm">// 最高位 = 优先级 0</span>
+
+LOS_DL_LIST *g_priQueueList = NULL;  <span class="cm">// 32 条就绪队列（每条对应一个优先级）</span>
+UINT32       g_queueBitmap;          <span class="cm">// 32 位位图：哪条队列非空</span>
+
+<span class="cm">// 入队：队列本来为空时才置位（避免重复置位）</span>
+VOID <span class="fn">OsSchedPriQueueEnQueue</span>(LOS_DL_LIST *item, UINT32 priority)
+{
+    <span class="kw">if</span> (LOS_ListEmpty(&amp;g_priQueueList[priority])) {
+        g_queueBitmap |= PRIQUEUE_PRIOR0_BIT &gt;&gt; priority;  <span class="cm">// ← 右移，不是左移</span>
+    }
+    <span class="fn">LOS_ListTailInsert</span>(&amp;g_priQueueList[priority], item);
+}
+
+<span class="cm">// 取最高优先级任务：一条 CLZ 指令搞定</span>
+LosTaskCB *<span class="fn">OsGetTopTask</span>(VOID)
+{
+    <span class="kw">if</span> (g_queueBitmap != <span class="num">0</span>) {
+        UINT32 priority = <span class="fn">CLZ</span>(g_queueBitmap);       <span class="cm">// 前导零个数 == 优先级</span>
+        <span class="kw">return</span> LOS_DL_LIST_ENTRY(g_priQueueList[priority].pstNext,
+                                 LosTaskCB, pendList);
+    }
+    <span class="kw">return</span> OS_TCB_FROM_TID(g_idleTaskID);          <span class="cm">// 全空 → 跑空闲任务</span>
+}</div>
+  <div class="note">📌 <b>版本差异提醒</b>：不同 OpenHarmony 版本里，这个函数可能在 <code>kernel/src/los_priqueue.c</code>（叫 <code>OsPriQueueEnqueue</code>），也可能在 <code>kernel/src/los_sched.c</code>（叫 <code>OsSchedPriQueueEnQueue</code>）；位图变量也可能写作 <code>g_priqueueBitmap</code>。结构完全一致，<b>改名不改逻辑</b>，看到不同名字不要以为找错了。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>位图的方向：为什么必须「右移」</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:14px;">这是本节最容易写错、也最难自查的一处。<b>位图的最高位必须对应优先级 0</b>，因为 <code>CLZ</code>（Count Leading Zeros，统计前导零）返回的是「从最高位数起有几个 0」，它必须<b>直接等于优先级</b>。</p>
+  <div class="code">priority:    0      1      2     ...    30     31
+             │      │      │            │      │
+bit:        31     30     29    ...     1      0
+          (MSB)                            (LSB)
+
+<span class="cm">// 优先级 0 和 29 都有就绪任务</span>
+g_queueBitmap = <span class="num">0b10000000_00000000_00000000_00000100</span>
+                  ↑                                    ↑
+              prio 0 就绪                        prio 29 就绪
+
+<span class="fn">CLZ</span>(<span class="num">0x80000004</span>) = <span class="num">0</span>   → 选优先级 0  ✅
+<span class="fn">CLZ</span>(<span class="num">0x00000004</span>) = <span class="num">29</span>  → 选优先级 29 ✅</div>
+  <table class="tb">
+    <thead><tr><th style="width:30%">写法</th><th style="width:22%">位图值（prio 0 就绪）</th><th>CLZ 结果</th></tr></thead>
+    <tbody>
+      <tr><td><code>1 &lt;&lt; 0</code>（原页面写法）</td><td><code>0x00000001</code></td><td><b>31</b> ❌ 把最高优先级当成了最低</td></tr>
+      <tr><td><code>0x80000000 &gt;&gt; 0</code>（正确）</td><td><code>0x80000000</code></td><td><b>0</b> ✅</td></tr>
+    </tbody>
+  </table>
+  <div class="warn">⚠️ 另外注意 <code>OsGetTopTask</code> 里的 <code>if (g_queueBitmap != 0)</code>：<b><code>CLZ(0)</code> 在 C 里是未定义行为</b>（不同架构返回值不同），所以必须先判空再调用。<code>bitmap == 0</code> 说明一个就绪任务都没有，此时切到空闲任务。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>O(1) 到底省在哪：与红黑树的对比</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:14px;">「O(1) 选取」不是营销词，它意味着<b>调度耗时与任务数量无关</b>——这对实时系统是硬指标。</p>
+  <table class="tb">
+    <thead><tr><th style="width:20%">操作</th><th style="width:40%">LiteOS-M（位图 + 链表）</th><th>Linux（红黑树）</th></tr></thead>
+    <tbody>
+      <tr><td><b>选最高优先级</b></td><td><b>1 条 CLZ</b>，O(1)</td><td>取树最左节点，O(1)（缓存）；EEVDF 下是 O(log n)</td></tr>
+      <tr><td><b>插入就绪</b></td><td>尾插链表，O(1)</td><td>插入红黑树，O(log n)</td></tr>
+      <tr><td><b>出队</b></td><td>摘链头，O(1)</td><td>删除节点，O(log n)</td></tr>
+      <tr><td><b>能否表达「公平」</b></td><td>❌ 只有优先级，无权重概念</td><td>✅ vruntime 精确记录每个任务跑了多久</td></tr>
+    </tbody>
+  </table>
+  <div class="kv">
+    <div class="k" style="--kc:#3b82f6"><div class="t"><span class="ic">⚡</span>RTOS 的选择</div><div class="d">32 条队列 + 32 位位图，结构极简、内存极小、最坏情况可算。代价是<b>只能表达「谁更重要」</b>，不能表达「各占多少」。</div></div>
+    <div class="k" style="--kc:#8b5cf6"><div class="t"><span class="ic">🌳</span>Linux 的选择</div><div class="d">红黑树按 vruntime 排序，能精确做加权公平。代价是每次调度有 O(log n) 开销，对 MCU 太重。</div></div>
+  </div>
+  <div class="tip">💡 一句话总结这条取舍：<b>实时系统优化「最坏情况」，通用系统优化「长期公平」</b>。前者不能容忍「偶尔慢一次」，后者不能容忍「某个任务永远饿着」。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>任务状态与时间片</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:14px;">LiteOS-M 用 <code>taskStatus</code> 的<b>位标记</b>表达状态，一共定义了 12 个标志位。真正需要掌握的是下面 5 个核心状态。</p>
+  <table class="tb">
+    <thead><tr><th style="width:24%">状态</th><th style="width:26%">标志</th><th>什么时候进入</th></tr></thead>
+    <tbody>
+      <tr><td><b>就绪</b> READY</td><td><code>OS_TASK_STATUS_READY</code></td><td>创建完成，或从阻塞/挂起被唤醒，挂在就绪队列里</td></tr>
+      <tr><td><b>运行</b> RUNNING</td><td><code>OS_TASK_STATUS_RUNNING</code></td><td>被调度器选中。<b>注意：它同时仍在就绪队列中</b></td></tr>
+      <tr><td><b>阻塞</b> PEND</td><td><code>OS_TASK_STATUS_PEND</code></td><td>等信号量/互斥锁/队列/事件——<b>被动等待资源</b></td></tr>
+      <tr><td><b>延时</b> DELAY</td><td><code>OS_TASK_STATUS_DELAY</code></td><td>调了 <code>LOS_TaskDelay</code>——<b>主动让出 CPU</b></td></tr>
+      <tr><td><b>挂起</b> SUSPEND</td><td><code>OS_TASK_STATUS_SUSPEND</code></td><td>被别的任务 <code>LOS_TaskSuspend</code> 强制停下，<b>不是自己愿意</b></td></tr>
+    </tbody>
+  </table>
+  <div class="code">                ┌────────── 被唤醒 / 超时 ──────────┐
+                ↓                                   │
+  [创建] ──► READY ──被选中──► RUNNING ──等资源──► PEND
+              ↑                 │  │                 │
+              │                 │  └──主动延时──► DELAY
+              └──被抢占/时间片耗尽┘
+                                └──LOS_TaskSuspend──► SUSPEND
+                                                      │
+                                          Resume ─────┘
+
+  <span class="cm">// 关键：被抢占后回到 READY，不是"取消"；</span>
+  <span class="cm">// 只有 PEND/DELAY/SUSPEND 才真正离开就绪队列</span></div>
+  <h4 style="font-size:15px;margin:22px 0 10px;color:var(--txt);">时间片的两级策略（一个容易被忽略的优化）</h4>
+  <table class="tb">
+    <thead><tr><th style="width:30%">场景</th><th>插入位置</th><th style="width:26%">为什么</th></tr></thead>
+    <tbody>
+      <tr><td>剩余时间片 &gt; 最小值</td><td><b>队列头</b></td><td>它还没跑完，让它继续跑——避免无谓的切换开销</td></tr>
+      <tr><td>时间片已耗尽</td><td><b>队列尾</b> + 重置时间片</td><td>同优先级公平轮转</td></tr>
+    </tbody>
+  </table>
+  <div class="note">📌 两个配置项要分清：<code>LOSCFG_BASE_CORE_TIMESLICE</code> 是<b>总开关</b>（某些产品的默认配置里是关闭的，即纯抢占不轮转）；<code>LOSCFG_BASE_CORE_TIMESLICE_TIMEOUT</code> 是<b>时间片长度</b>（常见 10 tick）。开了总开关才会有轮转——排查「同优先级任务饿死」时先查这里。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>什么时候会触发一次调度</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:14px;">调度不是随时发生，也不是每个 tick 都切换。触发点只有四类。</p>
+  <div class="step"><div class="n">1</div><div class="b"><div class="st">高优先级任务就绪</div><div class="sd">中断里释放了信号量、或创建了高优先级任务 → 立即抢占当前任务。<b>验收：能说出「抢占发生在哪个时刻」。</b></div></div></div>
+  <div class="step"><div class="n">2</div><div class="b"><div class="st">当前任务阻塞</div><div class="sd">等锁、等队列、延时 → 从就绪队列摘除，立刻选下一个。<b>验收：能区分 PEND 与 DELAY 的主动权归属。</b></div></div></div>
+  <div class="step"><div class="n">3</div><div class="b"><div class="st">时间片耗尽</div><div class="sd">仅在同优先级存在其他就绪任务时才切换。这是「同优先级公平」的唯一来源。</div></div></div>
+  <div class="step"><div class="n">4</div><div class="b"><div class="st">显式调用</div><div class="sd"><code>LOS_Schedule()</code> 主动让出；<code>LOS_TaskYield()</code> 让给同优先级。<b>验收：知道 yield 不会让给更低优先级。</b></div></div></div>
+  <div class="warn">⚠️ 两个禁区：① <b>中断服务程序里不能阻塞</b>（不能等锁、不能延时），否则调度器无法推进；② <b>系统启动初始化阶段不允许触发调度</b>，此时就绪队列还没建好。</div>
+  <div class="tip">💡 还有一个开关值得知道：<code>LOS_TaskLock</code> / <code>LOS_TaskUnlock</code> 可临时<b>禁止调度</b>（不是关中断）。适合极短的临界区——比关中断的副作用小，但仍会推迟所有任务的响应。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>优先级反转：RTOS 最著名的坑</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:14px;">这是调度这一节唯一必须掌握的「故障模式」。它不是理论问题——1997 年火星探路者号就因为它在火星表面反复重启。</p>
+  <div class="code"><span class="cm">// 三个任务：H 高 / M 中 / L 低，共享一把锁</span>
+
+t0: L 拿到锁，进入临界区
+t1: H 就绪，抢占 L，但 H 也需要这把锁 → H 阻塞
+t2: M 就绪（不需要锁），优先级高于 L → <span class="kw">M 抢占 L</span>
+t3: L 拿不到 CPU，锁一直不释放 → <span class="kw">H 无限期等待</span>
+
+<span class="cm">// 结果：H 明明优先级最高，却被 M 一直压着。
+// 优先级"反转"了 —— 实际执行顺序变成 M &gt; L &gt; H</span>
+<span class="cm">// 火星探路者：H 是总线管理任务，超时触发看门狗 → 整机复位</span></div>
+  <table class="tb">
+    <thead><tr><th style="width:20%">方案</th><th style="width:34%">做法</th><th style="width:22%">优点</th><th>代价</th></tr></thead>
+    <tbody>
+      <tr><td><b>优先级继承</b><br>PIP</td><td>高优先级任务等锁时，<b>持锁者临时提升</b>到等待者的优先级</td><td>按需提升，影响面小；实现相对简单</td><td>可能链式继承（A 等 B、B 等 C）；<b>不防死锁</b></td></tr>
+      <tr><td><b>优先级天花板</b><br>PCP</td><td>每把锁预设「天花板」= 可能用它的最高优先级；<b>一拿锁就提升</b>到天花板</td><td>阻塞时间有严格上界；可防死锁</td><td>需要静态分析出天花板值；可能过度提升</td></tr>
+      <tr><td><b>禁止抢占</b></td><td>持锁期间不许切换任务</td><td>零额外开销，最简单</td><td>阻塞所有无关任务，只适合极短临界区</td></tr>
+    </tbody>
+  </table>
+  <div class="tip">💡 <b>LiteOS 的互斥锁（<code>LOS_Mux*</code>）默认带优先级继承</b>，而信号量（<code>LOS_Sem*</code>）<b>不带</b>。这条区别很实用：保护共享资源用互斥锁，不要用信号量代替——用信号量做互斥就是把优先级反转的门开着。</div>
+  <div class="note">📌 但优先级继承不是万能的：它只解决「持锁者被中优先级任务抢占」，<b>不解决临界区本身太长</b>。如果临界区跑了 10ms，再好的协议也救不了实时性。设计上的第一原则永远是<b>缩短临界区</b>。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>LiteOS-A：两级队列</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:14px;">LiteOS-A 有真正的进程，于是队列也变成两级。这是它和 LiteOS-M 最大的结构差异。</p>
+  <div class="code">进程优先级桶队列（32 个，0~31）
+│
+├─ [prio 0 ] ──► 线程优先级队列组（32 个线程优先级）
+├─ [prio 1 ] ──► 线程优先级队列组
+├─   ...
+└─ [prio 31] ──► 线程优先级队列组
+                     │
+                     └─ [线程 prio 0] ─► 同优先级线程按时间片轮转
+                        [线程 prio 1]
+                          ...
+
+<span class="cm">// 调度单元是线程；进程优先级决定"在哪一组里找线程"</span></div>
+  <table class="tb">
+    <thead><tr><th style="width:24%">特性</th><th>LiteOS-A</th></tr></thead>
+    <tbody>
+      <tr><td><b>调度策略</b></td><td><b>进程仅 <code>SCHED_RR</code></b>；线程支持 <code>SCHED_RR</code> 与 <code>SCHED_FIFO</code></td></tr>
+      <tr><td><b>优先级</b></td><td>静态优先级，不能动态调；进程/线程均为 0~31（用户态进程可配 10~31）</td></tr>
+      <tr><td><b>tickless</b></td><td>内建：没有即将到期的事件时不产生周期 tick 中断，省电并减少无用中断</td></tr>
+      <tr><td><b>空闲</b></td><td>队列全空时选 <code>KIdle</code> 进程的线程</td></tr>
+    </tbody>
+  </table>
+  <div class="warn">⚠️ 别把 LiteOS-A 的「进程优先级」当成 Linux 的 nice：它<b>只支持静态优先级</b>，跑起来不能改；而且<b>进程调度策略只有 <code>SCHED_RR</code></b>，没有 Linux 那套 CFS/EEVDF。写移植代码时如果依赖动态调优先级，到这里会失效。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>Linux：从 CFS 到 EEVDF</h3>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.9;margin-bottom:14px;">这一条和 4.1 的选型直接相关——<b>OpenHarmony 同时维护 5.10 和 6.6 两条 Linux 基线，它们的调度器不是同一个</b>。</p>
+  <table class="tb">
+    <thead><tr><th style="width:18%">方面</th><th style="width:41%">CFS（≤ 6.5）</th><th>EEVDF（6.6+）</th></tr></thead>
+    <tbody>
+      <tr><td><b>选取规则</b></td><td>vruntime 最小的任务（红黑树最左节点）</td><td><b>合格任务里虚拟截止时间最早的</b></td></tr>
+      <tr><td><b>公平性靠什么</b></td><td>vruntime 长期收敛</td><td>引入 <code>lag</code>（欠/超份额）：只让 <code>lag ≥ 0</code> 的任务参与竞争</td></tr>
+      <tr><td><b>延迟敏感任务</b></td><td>靠唤醒抢占等启发式，效果不稳</td><td><b>请求短时间片 → 更早的虚拟截止时间 → 更快被选中</b></td></tr>
+      <tr><td><b>数据结构</b></td><td>每 CPU 一棵红黑树</td><td>仍是红黑树，增加截止时间维度的缓存</td></tr>
+      <tr><td><b>时间片</b></td><td>由 <code>sched_latency</code> 等参数隐式推导</td><td>显式，主旋钮 <code>sched_base_slice_ns</code>（默认 3ms）</td></tr>
+    </tbody>
+  </table>
+  <div class="note">📌 关键点：EEVDF <b>不是把 CFS 推倒重来</b>——<code>vruntime</code>、权重表、红黑树、cgroup 全都沿用，被替换的只是「从树里挑哪个」这个决策规则。所以在 6.6+ 上继续叫它 "CFS" 已经不太准确；6.12 起 CFS 的旧代码被彻底移除。</div>
+  <div class="tip">💡 回到 OpenHarmony：<b>同一个系统，跑 5.10 内核就是 CFS，跑 6.6 内核就是 EEVDF</b>。做性能对比测试时必须先确认内核版本，否则两组数据的调度行为根本不可比。</div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>三种内核调度总对照 &amp; 读源码入口</h3>
+  <table class="tb">
+    <thead><tr><th style="width:16%">维度</th><th style="width:28%">LiteOS-M</th><th style="width:28%">LiteOS-A</th><th>Linux</th></tr></thead>
+    <tbody>
+      <tr><td><b>调度单元</b></td><td>任务</td><td>线程</td><td>task（线程）</td></tr>
+      <tr><td><b>结构</b></td><td>32 链表 + 位图</td><td>进程桶 → 线程队列（两级）</td><td>红黑树</td></tr>
+      <tr><td><b>选取</b></td><td>CLZ，O(1)</td><td>按优先级逐级选</td><td>O(log n)</td></tr>
+      <tr><td><b>策略</b></td><td>抢占 + 可选时间片</td><td>RR / FIFO</td><td>EEVDF / RR / FIFO / DEADLINE</td></tr>
+      <tr><td><b>优化目标</b></td><td>确定性延迟</td><td>确定性 + 隔离</td><td>公平与吞吐</td></tr>
+      <tr><td><b>源码入口</b></td><td><code>kernel/src/los_sched.c</code></td><td><code>kernel/base/core/los_sched.c</code></td><td><code>kernel/sched/fair.c</code></td></tr>
+    </tbody>
+  </table>
+  <div class="step"><div class="n">1</div><div class="b"><div class="st">先看结构体</div><div class="sd">打开 <code>los_task.h</code>，找到 <code>LosTaskCB</code>，确认 <code>priority</code>、<code>taskStatus</code>、<code>pendList</code> 三个字段。<b>验收：能说出 <code>pendList</code> 同时被用作就绪队列节点和阻塞链表节点。</b></div></div></div>
+  <div class="step"><div class="n">2</div><div class="b"><div class="st">再看入队</div><div class="sd">找到 <code>OsSchedPriQueueEnQueue</code>，确认置位用的是右移。<b>验收：能自己画出位图方向。</b></div></div></div>
+  <div class="step"><div class="n">3</div><div class="b"><div class="st">看选取</div><div class="sd">找到 <code>OsGetTopTask</code>，认出 <code>CLZ</code> 那一行和空闲任务兜底。<b>验收：能解释为什么必须先判 <code>bitmap != 0</code>。</b></div></div></div>
+  <div class="step"><div class="n">4</div><div class="b"><div class="st">最后看切换</div><div class="sd">找到 <code>OsSchedTaskSwitch</code>，注意「新任务 == 当前任务就不切」这个提前返回。<b>验收：能说出这个判断省掉了什么开销。</b></div></div></div>
+</div>
+
+<div class="card">
+  <h3><span class="dot"></span>自测五问</h3>
+  <div class="step"><div class="n">1</div><div class="b"><div class="st">LiteOS-M 有多少个优先级？多少个任务？</div><div class="sd"><b>32 个优先级</b>（0~31，0 最高）；<b>最大任务数</b>由 <code>LOSCFG_BASE_CORE_TSK_LIMIT</code> 决定（常见 256）。这两个数字别混。</div></div></div>
+  <div class="step"><div class="n">2</div><div class="b"><div class="st">为什么位图置位要用 <code>0x80000000 &gt;&gt; priority</code>？</div><div class="sd">因为要用一条 <code>CLZ</code> 直接得到优先级。CLZ 数的是最高位起的前导零，所以最高位必须对应优先级 0；左移会让 CLZ 返回反过来的值。</div></div></div>
+  <div class="step"><div class="n">3</div><div class="b"><div class="st">任务被抢占后去了哪个状态？</div><div class="sd">回到 <b>READY</b>，仍在就绪队列里。只有 PEND / DELAY / SUSPEND 才真正离开就绪队列。</div></div></div>
+  <div class="step"><div class="n">4</div><div class="b"><div class="st">用信号量做互斥，会有什么隐患？</div><div class="sd">信号量<b>没有优先级继承</b>（LiteOS 的互斥锁才有），可能出现优先级反转：高优先级任务被中优先级任务间接拖死。</div></div></div>
+  <div class="step"><div class="n">5</div><div class="b"><div class="st">同一台 OpenHarmony 设备，调度行为可能不同吗？</div><div class="sd">会。Linux 5.10 基线用 CFS，6.6 基线用 EEVDF。性能测试前必须确认内核版本。</div></div></div>
+  <h4 style="font-size:15px;margin:22px 0 10px;color:var(--txt);">第 4 章的分工</h4>
+  <table class="tb">
+    <thead><tr><th style="width:14%">小节</th><th style="width:30%">讲什么</th><th>回答的问题</th></tr></thead>
+    <tbody>
+      <tr><td>4.1</td><td>三种内核的形态与边界</td><td>有哪几种？产品怎么选？</td></tr>
+      <tr><td>4.2</td><td>内核抽象层 KAL</td><td>差异怎么被一层接口吸收掉？</td></tr>
+      <tr><td><b>4.3</b></td><td><b>进程、线程与调度</b></td><td><b>就绪队列里的任务，谁被选中执行？（本节）</b></td></tr>
+      <tr><td>4.4</td><td>内存管理</td><td>任务有了栈，栈和堆从哪来？碎片怎么对抗？</td></tr>
+      <tr><td>4.5</td><td>文件系统与存储</td><td>任务要读文件，VFS 怎么统一三种形态？</td></tr>
+    </tbody>
+  </table>
+</div>
+  <div class="prevnext">
+    <a id="prevA" href="#"><span>← 上一节</span></a>
+    <a id="nextA" href="#"><span>下一节 →</span></a>
+  </div>
+</main>
+<script>
+try{const u=JSON.parse(localStorage.getItem('bit_user')||'null');if(u&&u.name)document.getElementById('uname').textContent='👤 '+u.name;}catch(e){}
+const courseId=new URLSearchParams(location.search).get('course')||'oh_system';
+document.getElementById('backCh').href=ROOT+'chapters.html?course='+encodeURIComponent(courseId);
+document.getElementById('crumb').innerHTML='<b>第二部分：内核与驱动</b><span class="sep">›</span><b>第4章 多内核架构</b><span class="sep">›</span>4.3 进程、线程与调度';
+document.getElementById('prevA').href="../4.2/index.html?course=oh_system";
+document.getElementById('prevA').innerHTML='<span>← 上一节</span>4.2 内核抽象层 KAL';
+document.getElementById('nextA').href="../4.4/index.html?course=oh_system";
+document.getElementById('nextA').innerHTML='<span>下一节 →</span>4.4 内存管理';
+/* ===== 左侧目录树：拉取本课程 toc 渲染，当前节高亮 ===== */
+(function(){
+  const MY_NO='4.3';
+  const sb=document.getElementById('sidebar'),mask=document.getElementById('sbMask');
+  const open=()=>{sb.classList.add('open');mask.classList.add('show');};
+  const close=()=>{sb.classList.remove('open');mask.classList.remove('show');};
+  const wide=()=>window.matchMedia('(min-width:1200px)').matches;
+  const colBtn=document.getElementById('sbCollapse');
+  const tgBtn=document.getElementById('sideToggle');
+  const hide=()=>{document.body.classList.add('sb-hide');try{localStorage.setItem('sbHide','1')}catch(e){}};
+  const show=()=>{document.body.classList.remove('sb-hide');try{localStorage.removeItem('sbHide')}catch(e){}};
+  if(colBtn) colBtn.onclick=hide;
+  tgBtn.onclick=()=>{ if(wide()){show();} else open(); };
+  document.getElementById('sbClose').onclick=close;
+  mask.onclick=close;
+  try{ if(localStorage.getItem('sbHide')==='1') document.body.classList.add('sb-hide'); }catch(e){}
+  const sc=document.createElement('script');
+  sc.src=ROOT+'data/toc-'+courseId+'.js?v='+Date.now();
+  sc.onload=()=>{
+    const TOC=window.COURSE_TOC||[];
+    const tree=document.getElementById('sbTree');
+    const curPage='part4/ch4/4.3/index.html';
+    let html='';
+    TOC.forEach(pt=>{
+      const chs=pt.chapters.map(ch=>{
+        const kids=ch.secs.map(s=>{
+          let sh='<a class="s'+(s.page===curPage?' cur':'')+'" href="'+ROOT+s.page+'?course='+courseId+'">'+
+                 '<span class="no">'+s.no+'</span><span>'+s.t+'</span></a>';
+          (s.subs||[]).forEach(x=>{
+            sh+='<a class="s s2'+(x.page===curPage?' cur':'')+'" href="'+ROOT+x.page+'?course='+courseId+'">'+
+                '<span class="no">'+x.no+'</span><span>'+x.t+'</span></a>';
+          });
+          return sh;
+        }).join('');
+        return '<div class="c"><div class="srow c-head"><span class="scaret">▶</span><span>'+ch.ch+'</span></div>'+
+               '<div class="ckids">'+kids+'</div></div>';
+      }).join('');
+      html+='<div class="p"><div class="srow p-head"><span class="scaret">▶</span><span>📚 '+
+            pt.part.replace(/^[^：:]*[：:]/,'')+'</span></div>'+
+            '<div class="pkids">'+chs+'</div></div>';
+    });
+    tree.innerHTML=html;
+    // 篇/章折叠；默认展开当前所在篇与章；滚动定位当前节
+    tree.querySelectorAll('.p-head,.c-head').forEach(r=>
+      r.onclick=()=>r.parentElement.classList.toggle('open'));
+    const cur=tree.querySelector('.s.cur');
+    if(cur){
+      let c=cur.closest('.c'); if(c)c.classList.add('open');
+      let p=cur.closest('.p'); if(p)p.classList.add('open');
+      setTimeout(()=>cur.scrollIntoView({block:'center'}),80);
+    } else tree.querySelector('.p')?.classList.add('open');
+  };
+  document.head.appendChild(sc);
+})();
+</script>
+<script src="/report.js"></script>
+</body>
+</html>

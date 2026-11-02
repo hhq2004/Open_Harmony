@@ -1,0 +1,128 @@
+{
+  "checked_date": "2026-10-31",
+  "timezone": "Asia/Shanghai",
+  "purpose": "Evidence for docs/target.md; not a complete offline mirror.",
+  "notes": [
+    "Raw assessment_detail.html includes a hidden report guide. Use oh_system-assessment.json -> current year -> project for the applicable content.",
+    "Competition rules and course project rules have separate applicability.",
+    "No account tokens, login responses or session cookies are archived.",
+    "Initial online template snapshots show an identity login gate. User-provided local DOCX and PPTX were subsequently read on 2026-10-31; see template-content-review.json."
+  ],
+  "files": [
+    {
+      "file": "assess.js",
+      "sha256": "95e3d12351646a4a2337cae5560d63804261a8d16f34ad20be3b825d7b5e5c2e",
+      "source_url": "http://121.36.63.22:8321/data/assess.js"
+    },
+    {
+      "file": "assessment.html",
+      "sha256": "3e53df529120fb0f1dc3213fb0ba6cfe8a4e5ac5e04680991c2e9d3fbf43a006",
+      "source_url": "http://121.36.63.22:8321/assessment.html?course=oh_system"
+    },
+    {
+      "file": "assessment_detail.html",
+      "sha256": "533c5af799ea7b157090fa9ccf812be861925b0222e6e4afb86cc8d56dcf18fa",
+      "source_url": "http://121.36.63.22:8321/assessment_detail.html?course=oh_system&item=project"
+    },
+    {
+      "file": "ch13_13.1.html",
+      "sha256": "380ff131d86ea200059d433dfde420bc358ea68b24a717889d48ea8667823fc4",
+      "source_url": "http://121.36.63.22:8321/part4/ch13/13.1/index.html?course=oh_system"
+    },
+    {
+      "file": "ch4_4.3.html",
+      "sha256": "4213d3ae0ac5a659341c3729ffec99c10f7ee9950318006b0b7a256aad5028ae",
+      "source_url": "http://121.36.63.22:8321/part4/ch4/4.3/index.html?course=oh_system"
+    },
+    {
+      "file": "ch7_7.3.html",
+      "sha256": "6a5ec1ebbcfd118f2ae5d61c8243f69b4fcb3151f5475ac623606c14b372a74c",
+      "source_url": "http://121.36.63.22:8321/part4/ch7/7.3/index.html?course=oh_system"
+    },
+    {
+      "file": "competition-publish-rendered.txt",
+      "sha256": "2e165512322473869a561771955ef44c43dd488d74b04296bcd4e8bf5c6e7bfe",
+      "source_url": "https://competition.gitcode.com/competition/2074791206352715777/publish"
+    },
+    {
+      "file": "competition-qa-rendered.txt",
+      "sha256": "e390f49fba3fb42234370c7f77c80c261bf34462b8fc46991d84078b96bebe5d",
+      "source_url": "https://competition.gitcode.com/competition/2074791206352715777/qa"
+    },
+    {
+      "file": "competition-rendered.txt",
+      "sha256": "f44f3f2772226dcdf041564976251c07b92e0465702917533984498836052af4",
+      "source_url": "https://competition.gitcode.com/competition/2074791206352715777/intro"
+    },
+    {
+      "file": "oh_system-assessment.json",
+      "sha256": "59ef149fbb86689eca9824c837cf0ca8660952daad1407663970049a6688b575",
+      "derived_from": "assess.js: window.ASSESS_DATA.oh_system"
+    },
+    {
+      "file": "P07.json",
+      "sha256": "a7e3cb92a6e65c45ba400c4dd3f9cc240547a0ef8ae8dd007c74d2f63ae8d7ad",
+      "derived_from": "projects.js: window.PROJECTS.find(p == P07)"
+    },
+    {
+      "file": "project_detail.html",
+      "sha256": "93cadf6ef7b2b1acd0b5e6d91ebce44c3a5cc9535a76c30432f91e65ced62e01",
+      "source_url": "http://121.36.63.22:8321/project_detail.html?p=P07&course=oh_system"
+    },
+    {
+      "file": "projects.js",
+      "sha256": "e339bda8b733304e6eec5324dca4a3df9f4906da41bfd2c897c890ef0fd70509",
+      "source_url": "http://121.36.63.22:8321/data/projects.js"
+    },
+    {
+      "file": "repository-access.json",
+      "sha256": "8dbd3932b6a47f9f21dd8916ed2e5806a36bbee9d06002d5c4639c70c391a933"
+    },
+    {
+      "file": "template_design-rendered.txt",
+      "sha256": "f8e4e77e6c815015f54969338da0df4c993a7d117981d8adc5a627019387c273",
+      "source_url": "https://doc.weixin.qq.com/doc/w3_AaUAoQZ5AMwCNsX9NUl4RQ1OvmJ4d?scode=AF4ANwdDADwhxSM7FOAaUAoQZ5AMw",
+      "status": "Login gate only; template body NOT retrieved."
+    },
+    {
+      "file": "template_design.html",
+      "sha256": "a263608dbc16e5c87c338757217bab174eb86833d735a179e505ddb046bfd693",
+      "source_url": "https://doc.weixin.qq.com/doc/w3_AaUAoQZ5AMwCNsX9NUl4RQ1OvmJ4d?scode=AF4ANwdDADwhxSM7FOAaUAoQZ5AMw",
+      "status": "Login gate only; template body NOT retrieved."
+    },
+    {
+      "file": "template_slides-rendered.txt",
+      "sha256": "f8e4e77e6c815015f54969338da0df4c993a7d117981d8adc5a627019387c273",
+      "source_url": "https://doc.weixin.qq.com/slide/p3_AaUAoQZ5AMwCNLDkxdJ1uRMmd80uw?scode=AF4ANwdDADwnCcVmiEAaUAoQZ5AMw",
+      "status": "Login gate only; template body NOT retrieved."
+    },
+    {
+      "file": "template_slides.html",
+      "sha256": "a80e2d20968e382676e7019e8a91f97489485b84e50e78c0a0ea7a94a0b450f6",
+      "source_url": "https://doc.weixin.qq.com/slide/p3_AaUAoQZ5AMwCNLDkxdJ1uRMmd80uw?scode=AF4ANwdDADwnCcVmiEAaUAoQZ5AMw",
+      "status": "Login gate only; template body NOT retrieved."
+    },
+    {
+      "file": "toc-oh_system.js",
+      "sha256": "956e9040f3dbc5fa93aad558aff90aa23dfbed928b7aebc9dea00dcc50e39272",
+      "source_url": "http://121.36.63.22:8321/data/toc-oh_system.js"
+    },
+    {
+      "file": "template-content-review.json",
+      "sha256": "22267a22eaef68f8564e44fca716e13cfafb6014641f62879c33c7fd21adc09d",
+      "derived_from": "User-provided local DOCX and PPTX; OOXML text including paragraph instructions and slide text."
+    },
+    {
+      "file": "../xxx团队-赛道一-开发设计文档模板.docx",
+      "sha256": "cec524afac878a879425e5d57cde6906b4f7e4ab883c046ad7733e0256b0f624",
+      "source": "User-provided download of the linked official template.",
+      "status": "Local original inspected for content; unchanged."
+    },
+    {
+      "file": "../xxx团队-赛道一-答辩模板.pptx",
+      "sha256": "e15d8821f11d622e84ba3113fa0f926c3052b1040735b0516026f8bc24fbed93",
+      "source": "User-provided download of the linked official template.",
+      "status": "Local original inspected for content; unchanged."
+    }
+  ]
+}

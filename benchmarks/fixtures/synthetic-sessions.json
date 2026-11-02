@@ -1,0 +1,12 @@
+{
+  "dataKind": "synthetic",
+  "purpose": "Pipeline smoke input, not real user evidence or a performance benchmark.",
+  "trainingSessions": [
+    ["home", "list", "detail", "list", "detail"],
+    ["home", "list", "settings"]
+  ],
+  "evaluationSessions": [
+    ["home", "list", "detail", "list", "settings"],
+    ["unseen", "home", "list"]
+  ]
+}
