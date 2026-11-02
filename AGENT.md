@@ -41,7 +41,7 @@ D:\Code\Python\hong_meng\OpenHarmony_project
 - 选题详情页：<http://121.36.63.22:8321/project_detail.html?p=P07&course=oh_system>。
 - 项目计划五人协作，身份信息目前仅确认上述一名参与者；不沿用旧汇报的组号、成员、贡献声明或签名。
 - 用户已确认仅用于课程提交，不参加外部大赛；目前只有 Windows 电脑，目标鸿蒙运行环境仍需落实。
-- 五人远程协作平台已选定 GitHub，远程仓库尚未创建。`.github/workflows/host-pipeline.yml` 已配置主机侧的 Windows/Ubuntu 自动检查与报告归档，尚未在云端执行。
+- 五人远程协作仓库为 `https://github.com/hhq2004/Open_Harmony`，主分支为 `main`。`.github/workflows/host-pipeline.yml` 已配置主机侧的 Windows/Ubuntu 自动检查与报告归档，云端是否通过以对应提交的 Actions 结果为准。
 
 可复用的课程工具包（属于旁边的 `presentation`，作为只读辅助）：
 
