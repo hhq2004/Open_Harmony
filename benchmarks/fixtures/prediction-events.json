@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 2,
+  "dataKind": "synthetic",
+  "source": "Hand-authored lifecycle and delivery-order regression scenarios; no user or device measurements.",
+  "pageCatalog": ["home", "list", "detail", "settings"],
+  "sessionOptions": { "maxSessions": 2, "maxGapMs": 10 },
+  "scenarios": [
+    {
+      "name": "interleaved-delivery",
+      "trainingEvents": [
+        { "order": 1, "kind": "set-enabled", "enabled": true },
+        { "order": 2, "kind": "visit", "visit": { "sessionId": "train-a", "pageId": "home", "monotonicMs": 0 } },
+        { "order": 3, "kind": "visit", "visit": { "sessionId": "train-a", "pageId": "list", "monotonicMs": 1 } },
+        { "order": 4, "kind": "visit", "visit": { "sessionId": "train-a", "pageId": "detail", "monotonicMs": 2 } },
+        { "order": 5, "kind": "visit", "visit": { "sessionId": "train-b", "pageId": "home", "monotonicMs": 0 } },
+        { "order": 6, "kind": "visit", "visit": { "sessionId": "train-b", "pageId": "list", "monotonicMs": 1 } },
+        { "order": 7, "kind": "visit", "visit": { "sessionId": "train-b", "pageId": "settings", "monotonicMs": 2 } }
+      ],
+      "evaluationEvents": [
+        { "order": 8, "kind": "visit", "visit": { "sessionId": "eval-a", "pageId": "home", "monotonicMs": 0 } },
+        { "order": 9, "kind": "visit", "visit": { "sessionId": "eval-b", "pageId": "list", "monotonicMs": 0 } },
+        { "order": 10, "kind": "visit", "visit": { "sessionId": "eval-a", "pageId": "list", "monotonicMs": 1 } },
+        { "order": 11, "kind": "visit", "visit": { "sessionId": "eval-b", "pageId": "detail", "monotonicMs": 1 } },
+        { "order": 12, "kind": "visit", "visit": { "sessionId": "eval-a", "pageId": "detail", "monotonicMs": 2 } },
+        { "order": 13, "kind": "visit", "visit": { "sessionId": "eval-a", "pageId": "home", "monotonicMs": 1 } },
+        { "order": 14, "kind": "visit", "visit": { "sessionId": "eval-b", "pageId": "list", "monotonicMs": 2 } }
+      ]
+    },
+    {
+      "name": "switch-gap-end-and-clear",
+      "trainingEvents": [
+        { "order": 1, "kind": "set-enabled", "enabled": true },
+        { "order": 2, "kind": "visit", "visit": { "sessionId": "train", "pageId": "home", "monotonicMs": 0 } },
+        { "order": 3, "kind": "visit", "visit": { "sessionId": "train", "pageId": "list", "monotonicMs": 1 } },
+        { "order": 4, "kind": "visit", "visit": { "sessionId": "train", "pageId": "home", "monotonicMs": 2 } },
+        { "order": 5, "kind": "visit", "visit": { "sessionId": "train", "pageId": "list", "monotonicMs": 3 } }
+      ],
+      "evaluationEvents": [
+        { "order": 6, "kind": "visit", "visit": { "sessionId": "eval", "pageId": "home", "monotonicMs": 0 } },
+        { "order": 7, "kind": "visit", "visit": { "sessionId": "eval", "pageId": "list", "monotonicMs": 11 } },
+        { "order": 8, "kind": "visit", "visit": { "sessionId": "eval", "pageId": "home", "monotonicMs": 12 } },
+        { "order": 9, "kind": "set-enabled", "enabled": false },
+        { "order": 10, "kind": "visit", "visit": { "sessionId": "eval", "pageId": "list", "monotonicMs": 13 } },
+        { "order": 11, "kind": "set-enabled", "enabled": true },
+        { "order": 12, "kind": "visit", "visit": { "sessionId": "eval", "pageId": "home", "monotonicMs": 14 } },
+        { "order": 13, "kind": "visit", "visit": { "sessionId": "eval", "pageId": "list", "monotonicMs": 15 } },
+        { "order": 14, "kind": "end-session", "sessionId": "eval" },
+        { "order": 15, "kind": "visit", "visit": { "sessionId": "eval", "pageId": "detail", "monotonicMs": 16 } },
+        { "order": 16, "kind": "clear" },
+        { "order": 17, "kind": "visit", "visit": { "sessionId": "eval", "pageId": "home", "monotonicMs": 17 } },
+        { "order": 18, "kind": "visit", "visit": { "sessionId": "eval", "pageId": "list", "monotonicMs": 18 } }
+      ]
+    },
+    {
+      "name": "session-capacity",
+      "trainingEvents": [],
+      "evaluationEvents": [
+        { "order": 1, "kind": "set-enabled", "enabled": true },
+        { "order": 2, "kind": "visit", "visit": { "sessionId": "a", "pageId": "home", "monotonicMs": 100 } },
+        { "order": 3, "kind": "visit", "visit": { "sessionId": "b", "pageId": "list", "monotonicMs": 0 } },
+        { "order": 4, "kind": "visit", "visit": { "sessionId": "c", "pageId": "detail", "monotonicMs": 0 } },
+        { "order": 5, "kind": "visit", "visit": { "sessionId": "a", "pageId": "list", "monotonicMs": 101 } },
+        { "order": 6, "kind": "visit", "visit": { "sessionId": "a", "pageId": "detail", "monotonicMs": 102 } }
+      ]
+    }
+  ]
+}

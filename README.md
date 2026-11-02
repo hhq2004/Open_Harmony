@@ -9,8 +9,8 @@
 | 内容 | 状态 |
 | --- | --- |
 | 本地主机侧 pipeline | 已实现环境检查、类型检查、编译、单元测试、合成路径回放和报告保存 |
-| 路径预测 | 已实现独立的一阶 `MarkovPredictor` 基线 |
-| 自动化测试 | 现有 12 项测试覆盖预测与离线回放；新增模块需补充自己的测试 |
+| 路径预测 | 已实现有界一阶模型、统一配置、会话接入、生命周期回放和参数批量对照；见 [B 模块说明](docs/prediction.md) |
+| 自动化测试 | 覆盖预测、窗口淘汰、会话隔离、开关/清除和离线评测；新增模块需补充自己的测试 |
 | GitHub Actions | 已配置 Windows/Ubuntu 检查；具体运行结果以仓库 Actions 页面为准 |
 | 采集、调度、预渲染和测量 | 已声明接入接口，目标平台实现待开发 |
 | 鸿蒙应用构建和设备评测 | 目标系统、SDK/API、设备及接入方案待确定，尚未完成验证 |
@@ -33,7 +33,7 @@ npm run pipeline
 pipeline 按以下顺序执行：
 
 ```text
-环境检查 → 严格类型检查 → 干净编译 → 单元测试 → 合成路径回放 → 保存报告
+环境检查 → 严格类型检查 → 干净编译 → 单元测试 → 合成路径回放 → 路径/事件策略对照 → 参数批量对照 → 保存报告
 ```
 
 任一步失败即停止后续步骤，返回非零退出码。编译只清理本项目生成的 `dist/`，防止旧产物误通过；运行记录保留在独立的 `artifacts/pipeline/<run>/` 目录，包含 `report.json` 和各阶段的标准输出、错误输出。
@@ -45,9 +45,13 @@ pipeline 按以下顺序执行：
 | `npm run build` | 清理生成目录并重新编译 |
 | `npm test` | 先编译，再执行 Node 单元测试 |
 | `npm run replay` | 先编译，再回放合成路径 |
+| `npm run evaluate:prediction` | 先编译，比较四个基线及当前配置，保存逐跳决策、输入、配置与来源校验值 |
+| `npm run sweep:prediction` | 先编译，用验证段比较配置，仅对选中配置执行最终测试 |
 | `npm run pipeline` | 执行完整的主机侧检查并保存报告 |
 
 `doctor` 对 `hdc`、`ohpm` 等工具的检测范围是命令路径，不验证设备连接、SDK 兼容性或鸿蒙构建是否成功。工具尚未配置时，独立算法检查仍可运行，报告中的目标环境验证保持 `not-run`。
+
+预测配置入口为 [config/prediction.json](config/prediction.json)，空的 `model`、`session` 对象继承 `src/prediction/config.ts` 的统一默认值。Node 评测命令默认读取该文件；应用由 A 加载同一配置，再交给 `createPredictionEngine(pageCatalog, profile)`，核心代码不依赖 Node 文件接口。报告的 `profile` 保存解析后的配置，`effectiveConfig` 另明确记录数据集会话策略与 `--top-k` 覆盖后的生效值。
 
 ## 五人模块分工
 
@@ -65,7 +69,7 @@ A 组织应用与模块集成，E 维护自动检查并组织最终验收。每�
 
 ## 模块接入规则
 
-共享类型见 [src/contracts.ts](src/contracts.ts)。这些是待评审的逻辑契约，并非已经实现的鸿蒙系统 API。目前只有预测器有实际实现。
+共享类型见 [src/contracts.ts](src/contracts.ts)。这些是待评审的逻辑契约，并非已经实现的鸿蒙系统 API。目前只有 B 的预测模型及会话接入器有实际实现；会话接入器消费已脱敏的事件，不替代 A 的平台采集实现。
 
 1. 先在任务或 PR 中写清模块入口、输入输出、依赖、异常行为和验收方法，再按独立分支开发。
 2. 主机侧 TypeScript 实现放在 `src/`，对应测试放在 `tests/<module>.test.mjs`。当前 pipeline 从 `tests/` 顶层发现测试文件；新建嵌套测试目录前，应先同步修改测试发现规则。
@@ -73,7 +77,9 @@ A 组织应用与模块集成，E 维护自动检查并组织最终验收。每�
 4. 公共接口改动须与上下游同步评审，包括页面标识规则、优先级方向、完成/失败通知和取消时序；不得只在单个模块中另定一套格式。
 5. 日志和原始结果保存到对应 `artifacts/` 子目录，引用固定版本的源码时提供 `文件:行号#符号名`。
 
-采集适配器只把同会话内相邻事件交给预测器，不跨会话串联。采集关闭和数据清除行为应由采集实现及其测试明确验证。
+A 可通过 `SessionPredictor.accept(VisitEvent)` 接入已脱敏事件，由 B 接入器隔离会话并调用预测模型，避免上游再调用 `observe` 造成重复学习。接入器默认关闭，关闭时清除会话游标并停止学习/预测，`clear()` 清除游标与模型。A 的真实采集开关、原始数据清除及日志脱敏仍需在平台实现中验证，详见 [接入说明](docs/prediction.md)。
+
+需要区分关闭、迟到事件、超时或淘汰边界时，使用 `acceptDetailed()` 获取 `SessionDecision`；其候选与 `accept()` 来自同一执行路径。不要为同一次访问先后调用两者，以免重复学习。共享 `src/contracts.ts` 接口未改动，B 的跨模块交接步骤见模块说明末尾。
 
 调度侧负责取消任务，资源侧负责释放已经创建及取消后晚到的资源。`PreparedView.dispose()` 应可重复调用，`take()` 成功后由调用者持有并释放资源。具体错误传播、任务状态和并发边界需在接入时共同确定并补充集成测试。
 
@@ -87,11 +93,19 @@ A 牵头确定目标系统、应用工程及设备或模拟器，C、D 验证相
 
 ## 预测基线与测试数据
 
-一阶基线按页面转移频次输出候选。未知页面不预测；相同频率按页面标识确定顺序。分数是条件频率，截取前几个候选时不重新归一化，不能将其直接称为已校准的置信度。当前基线还没有持久化、容量治理或个性化策略。
+一阶模型按近期页面转移频次输出候选，默认最多保留 2,048 次转移；可配置最小样本数和候选频率门槛。未知页面或证据不足时不预测；相同频率按页面标识确定顺序。分数是条件频率，筛选和截取候选后不重新归一化，不能将其称为已校准的置信度。当前为内存模型，没有持久化或用户画像。
 
 `benchmarks/fixtures/synthetic-sessions.json` 是明确标记的合成数据，只用于连通 pipeline。回放时先预测再观察真实下一跳，按会话隔离；训练数据在评测之前提供，评测过程中逐步在线更新。报告同时给出预测覆盖率、全体机会命中率和有预测时命中率，分母为零时返回 `null`。
 
 这些数字不能写成真实用户命中率、点击加速或内存优化结果。后续应以经过脱敏的真实路径和固定目标环境建立单独评测。
+
+`benchmarks/fixtures/prediction-scenarios.json` 另提供重复路径、歧义路径、路径变化和冷启动四组合成对照。运行 `npm run evaluate:prediction` 会比较完整历史、近期窗口、带门槛窗口、最近一次后继及当前配置 `configured`；独立结果保存在 `artifacts/prediction/<run>/`。编译后运行 `node benchmarks/prediction.mjs --mode frozen --top-k 2` 可冻结训练模型并检查前两个候选。自有数据格式和指标定义见 B 模块说明，不根据这些合成样本确定最终设备参数。
+
+完整 pipeline 的对照结果保存在本次 `artifacts/pipeline/<run>/prediction-evaluation/` 内，随现有 GitHub Actions 产物归档；其中的结构计数与主机耗时不能代替设备内存及点击响应测量。
+
+`benchmarks/fixtures/prediction-events.json` 使用第二版输入格式，包含交错会话、全局投递顺序、会话内时间和开关/结束/清除事件，直接经过真实的 B 会话接入器。编译后运行 `node benchmarks/prediction.mjs --input benchmarks/fixtures/prediction-events.json`；完整 pipeline 会将该对照结果保存在 `prediction-event-evaluation/` 子目录。此前的纯路径格式继续用于算法检查；含超时、开关或交错会话的输入应使用事件格式。
+
+`npm run sweep:prediction` 使用 `config/prediction-candidates.json` 的候选和选择约束，以及 `benchmarks/fixtures/prediction-sweep.json` 的训练/验证/最终测试三段数据。所有候选只在验证段比较；按覆盖率及候选数量约束选择后，仅对胜出配置用训练＋验证历史重新训练并执行最终测试。结果保存在 `artifacts/prediction-sweep/`；完整 pipeline 将其归档到 `prediction-parameter-sweep/`。该命令不会修改当前配置；示例数据为合成数据，选中项不代表生产参数。
 
 ## GitHub 自动检查
 
@@ -109,6 +123,7 @@ A 牵头确定目标系统、应用工程及设备或模拟器，C、D 验证相
 | `tests/` | 可自动执行的模块与回放测试 |
 | `scripts/` | 环境检查、干净编译和 pipeline 入口 |
 | `benchmarks/` | 合成回放输入、评测脚本；真实数据需另行说明来源和口径 |
+| `config/` | 预测配置覆盖项、批量对照候选及选择约束；默认值集中在核心配置模块 |
 | `docs/target.md` | 项目要求、评分、模板条目和待落实事项 |
 | `docs/` 中的 DOCX/PPTX | 两份原始官方模板；正式作品另存，不覆盖原件 |
 | `docs/sources/` | 要求网页快照、提取数据、模板内容核对及来源索引，不参与程序运行 |
