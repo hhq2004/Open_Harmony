@@ -17,6 +17,8 @@
     "evaluate:prediction": "node benchmarks/prediction.mjs",
     "presweep:prediction": "npm run build",
     "sweep:prediction": "node benchmarks/sweep.mjs",
+    "preverify:preload": "npm run build",
+    "verify:preload": "node benchmarks/preload.mjs",
     "pipeline": "node scripts/pipeline.mjs"
   },
   "devDependencies": { "typescript": "5.9.3" }
