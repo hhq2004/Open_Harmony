@@ -11,7 +11,7 @@
 | 内容去重 | 按 sessionId、pageId、dataKey 去重，重复 taskId 幂等，冲突拒绝 | 同上 |
 | 预取与错误 | 泛型数据租约、超时、TTL、无自动重试；Node HTTP 支持响应大小限制与数据校验 | `tests/preload-http.test.mjs` |
 | 生命周期 | 取消、关闭、会话结束、清除、内存压力，晚到结果清理 | `tests/preload.test.mjs` |
-| C→D 交接 | 数据借用、视图异步准备、匹配校验、晚到释放、前台接管 | 测试替身验证协议；真实视图待 D |
+| C→D 交接 | 数据借用、视图异步准备、匹配校验、晚到释放、前台接管 | 核心协议测试及 `tests/preload-preparation.test.mjs` 使用 D 资源管理器的合并回归；真实视图待平台验证 |
 | A/B→C 交接 | 按上一轮任务核对命中，再处理新一轮第一个候选；空候选仍清理旧任务 | `PredictionPreloadController` 与真实 B 联调测试 |
 | 证据 | 本地真实 HTTP 请求、主动中止、503 失败、任务轨迹、源码 SHA-256 | `npm run verify:preload` |
 
@@ -94,7 +94,9 @@ stateDiagram-v2
 
 take 成功后，数据与视图整体转给前台。前台最终调用 bundle.dispose()，其内部重复调用安全。之后后台 clear、过期或内存压力都不会回收这份前台租约；调用方不得再单独释放其内部 data/view，以免重复清理。
 
-原 `ViewPreparer.prepare(request)` 没有数据参数和逐任务取消协议，不能直接当作本适配器使用。D 应提供薄适配层，且不得同时把同一视图放进另一套 take 缓存，避免双重所有权。
+原 `ViewPreparer.prepare(request)` 没有数据参数和逐任务取消协议，不能直接当作本适配器使用。现已合入 D 的 [ResourceViewPreparer](preparation.md)，仍需薄适配层：把预取数据借给构建器，await prepare 后立即通过 D.take 将视图移交 C，最后由 C.take 移交前台。不得同时把同一视图放进另一套 take 缓存，避免双重所有权。D.cancel 支持共享 CancelReason 的全部八个原因；C 的 timeout 在适配层映射为 expired，C 自身仍记录 failed/timeout。
+
+`tests/preload-preparation.test.mjs` 的适配器仅为主机交接示例，已检查具体内容绑定、对象身份、全部取消原因、晚到释放和准备失败。它不替代 SDK 适配器；平台接入还须限制移交给 C 后的视图总量/字节，不能认为 D 已移出缓存的视图仍受 D 缓存预算控制。
 
 ## 配置、预算与异常
 
@@ -131,6 +133,8 @@ HTTP 场景在 127.0.0.1 临时端口启动本地服务，经过现有 B 模型�
 2026-11-05（北京时间），复核后的 Windows / Node 22.19.0 完整 `npm run pipeline` 通过：101 项测试全通过，其中 C 新增 34 项，原有 67 项继续通过。复核补充了 4 项回归测试，修复观察者重入导致的通知乱序、初始环境可被修改、过期通知期间新任务未参与优先级比较，以及原型同名配置项未被拒绝的问题。主机 HTTP 阶段观察到预取数据被消费、服务端收到请求中止、HTTP 503 被记录为失败，结束后 C 持有字节为 0，取消、清理和观察者错误计数均为 0。
 
 报告保存在本地 `artifacts/pipeline/2026-11-05T08-11-11-021Z-8c138377/report.json`，逐阶段标准输出/错误输出同目录；HTTP 证据在其 `preload-http-functional/` 子目录。该记录对应提交前的工作树，执行源码校验值见证据文件。原先的 97 项验证记录保留在 `artifacts/pipeline/2026-11-05T07-34-48-202Z-0f8b96fe/`。这些本地生成物不随源码提交，运行上述命令可重新生成；未运行目标平台验证。
+
+2026-11-06（北京时间），在 C 分支合入 `origin/main` 的 `9f331e5`（包含 D 实现 `79cb264` 及交付说明）后，重新运行完整 pipeline，127 项测试全部通过：原有 67 项、C 的 34 项、D 的 15 项，以及新增 C/D 合并回归 11 项。合并时保留双方 README 状态及文档，修复 D 拒绝四个新增取消原因的运行时兼容问题。报告位于本地 `artifacts/pipeline/2026-11-06T05-25-17-032Z-f207981f/report.json`；主机 HTTP 功能阶段也通过。此次记录对应合并提交前的工作树；目标环境验证仍为 not-run。
 
 核心定位锚点（以交付工作树版本为准，正式引用时同时记录提交或源码 SHA-256）：
 
