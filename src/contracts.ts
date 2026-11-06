@@ -24,12 +24,17 @@ export interface VisitCollector {
   clear(): void;
 }
 
-export type CancelReason = 'foreground-work' | 'prediction-miss' | 'memory-pressure' | 'expired';
+export type CancelReason = 'foreground-work' | 'prediction-miss' | 'memory-pressure' | 'expired'
+  | 'disabled' | 'cleared' | 'session-ended' | 'superseded';
 
 export interface PreloadRequest {
   readonly taskId: string;
   readonly pageId: string;
   readonly priority: number;
+  /** Opaque content/version/parameter identity; omitted only for static page-only data. */
+  readonly dataKey?: string;
+  /** Anonymous application session; defaults to a single 'default' session. */
+  readonly sessionId?: string;
 }
 
 export interface PreloadScheduler {

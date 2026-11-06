@@ -114,7 +114,7 @@ interface CachedPreparation<T> {
   lastUsedAtMs: number;
 }
 
-const CANCEL_REASONS: readonly CancelReason[] = ['foreground-work', 'prediction-miss', 'memory-pressure', 'expired'];
+const CANCEL_REASONS: readonly CancelReason[] = ['foreground-work', 'prediction-miss', 'memory-pressure', 'expired', 'disabled', 'cleared', 'session-ended', 'superseded'];
 
 function checkReason(reason: CancelReason): void {
   if (!CANCEL_REASONS.includes(reason)) throw new TypeError(`Unknown view release reason: ${String(reason)}.`);
