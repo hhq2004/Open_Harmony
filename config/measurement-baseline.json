@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "scenario": "measurement-baseline-v1",
+  "dataKind": "synthetic",
+  "timingSource": "controlled-host-clock",
+  "description": "Deterministic host scenario for validating the measurement pipeline. The fetch/render delays are scenario parameters, not device latency measurements.",
+  "fetchDelayMs": 20,
+  "renderDelayMs": 2,
+  "interactiveDelayMs": 3,
+  "prediction": {
+    "model": {
+      "windowSize": 32,
+      "minSamples": 1,
+      "minProbability": 0
+    },
+    "session": {
+      "maxSessions": 8,
+      "maxGapMs": 60000,
+      "limit": 1
+    }
+  },
+  "scheduler": {
+    "timeoutMs": 500,
+    "ttlMs": 5000,
+    "maxTasks": 8,
+    "maxBytes": 1048576
+  },
+  "viewPreparer": {
+    "maxPreparedViews": 4,
+    "maxPreparedBytes": 1048576,
+    "ttlMs": 60000
+  },
+  "pageCatalog": ["home", "list", "detail", "settings", "about"],
+  "trainingSessions": [
+    ["home", "list", "detail"],
+    ["home", "list", "detail"],
+    ["home", "settings", "about"],
+    ["list", "detail", "home"]
+  ],
+  "liveSessions": [
+    {
+      "sessionId": "s1",
+      "pages": ["home", "list", "detail", "home", "settings", "about"]
+    },
+    {
+      "sessionId": "s2",
+      "pages": ["list", "detail", "home", "settings", "about"]
+    }
+  ]
+}
