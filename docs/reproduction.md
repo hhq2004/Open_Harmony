@@ -1,6 +1,6 @@
 # P07 项目本机复现记录
 
-复现日期：2026-11-09（中国标准时间）。工作目录：`C:\Users\lenovo\Desktop\课程作业\鸿蒙`。代码基线：本地分支 `codex/a-application-integration`，提交 `33fbde2`；远端主分支基线 `2fdd90f`。本文件记录已实际执行的步骤与结果，设备运行尚未验收。
+复现日期：2026-11-09（中国标准时间）。工作目录：`C:\Users\lenovo\Desktop\课程作业\鸿蒙`。代码基线：本地分支 `codex/a-application-integration`，A 实现提交 `33fbde2`；远端主分支基线 `2fdd90f`。本文件记录已实际执行的步骤与结果。当前阶段以主机流水线、可交互浏览器演示和 OpenHarmony HAP 构建复现为范围；用户已明确无需一定在模拟器上运行。
 
 ## 环境
 
@@ -31,8 +31,8 @@ npm run demo
 
 `npm run demo` 会持续运行本地服务；结束演示时在启动它的终端按 Ctrl+C。演示用固定静态页面数据，只验证 A/B/C 的主机侧接入，不代表鸿蒙设备上的数据预取、D 的真实视图复用或性能收益。构建脚本在 D 盘英文目录执行 Hvigor，以避开工程根目录中文路径限制；每次运行产物和日志独立保存在 `artifacts/`，这些本地生成物默认不提交 Git。
 
-## 设备端完成条件
+## 后续设备端验证
 
-当前还不能把“构建成功”记为“应用在设备上可运行”。本机另有一个未启动的 HarmonyOS 6.0.0（API 20）模拟器；[华为构建目标文档](https://developer.huawei.com/consumer/en/doc/harmonyos-guides-V13/ide-customized-multi-targets-and-products-guides-V13/)将 OpenHarmony HAP 与 HarmonyOS HAP 分别对应各自设备，现有模拟器也低于工程 API 26。需要先确认课程接受的目标系统，再完成相应的签名、安装、启动与交互录屏。
+当前阶段的复现已完成，不依赖模拟器。仍不能把“构建成功”记为“应用在设备上可运行”。本机另有一个未启动的 HarmonyOS 6.0.0（API 20）模拟器；[华为构建目标文档](https://developer.huawei.com/consumer/en/doc/harmonyos-guides-V13/ide-customized-multi-targets-and-products-guides-V13/)将 OpenHarmony HAP 与 HarmonyOS HAP 分别对应各自设备，现有模拟器也低于工程 API 26。若课程最终要求设备验证，再确定目标系统，完成相应的签名、安装、启动与交互录屏。
 
-若课程要求 OpenHarmony，请提供或连接匹配 API 26 的 OpenHarmony 设备/镜像，并在设备上开启调试连接；A 随后验证默认关闭、页面访问、同会话预测、清除历史和退出恢复。若课程允许 HarmonyOS 模拟器，应另建兼容的 HarmonyOS 构建配置与 SDK，不把该模拟器结果写成 OpenHarmony 实测。设备测量和完整 C/D/E 平台联调仍需团队共同完成。
+若后续要求 OpenHarmony 设备验证，请提供或连接匹配 API 26 的设备/镜像，并在设备上开启调试连接；A 再验证默认关闭、页面访问、同会话预测、清除历史和退出恢复。若最终选择 HarmonyOS 模拟器，应另建兼容的 HarmonyOS 构建配置与 SDK，不把该模拟器结果写成 OpenHarmony 实测。设备测量和完整 C/D/E 平台联调仍需团队共同完成。
