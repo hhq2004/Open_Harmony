@@ -13,7 +13,7 @@
 | 预渲染资源生命周期 | 已实现视图构建适配、身份复用、预测落空/过期/内存压力释放、容量淘汰及晚到资源处理；见 [D 模块说明](docs/preparation.md) 和 [钟广申的交付与合并说明](docs/DELIVERY_D.md) |
 | 自动化测试 | 覆盖预测、窗口淘汰、会话隔离、开关/清除、离线评测，以及视图复用、取消竞态和资源回收；新增模块需补充自己的测试 |
 | GitHub Actions | 已配置 Windows/Ubuntu 检查；具体运行结果以仓库 Actions 页面为准 |
-| A 采集与集成演示 | 已实现固定页面别名、默认关闭的匿名会话采集、清除与生命周期边界；浏览器演示已接入 B/C 静态数据预取，OpenHarmony API 26 工程已编译 A/B HAP；见 [A 流程](docs/A-workflow.md) |
+| A 采集与集成演示 | 已实现固定页面别名、默认关闭的匿名会话采集、清除与生命周期边界；浏览器与 OpenHarmony API 26 工程均已接入 B/C 静态数据预取并完成构建；见 [A 流程](docs/A-workflow.md) |
 | 调度、预渲染和测量 | C/D/E 主机侧模块与测试已合入；应用中的端到端接入和设备验证待完成，见 [预取](docs/preload.md)、[预渲染](docs/preparation.md) 与 [测量](docs/measurement.md) |
 | OpenHarmony 构建和设备评测 | DevEco Studio 26.0.0.865 与 OpenHarmony SDK 26.0.0.38 已配置并完成 ArkTS 编译；HAP 尚未签名，未检测到设备/模拟器，设备运行与性能评测待完成 |
 
@@ -51,7 +51,7 @@ pipeline 按以下顺序执行：
 | `npm run sweep:prediction` | 先编译，用验证段比较配置，仅对选中配置执行最终测试 |
 | `npm run pipeline` | 执行完整的主机侧检查并保存报告 |
 | `npm run demo` | 编译并启动 A/B/C 本地浏览器演示，打开 `http://127.0.0.1:4173/` |
-| `npm run build:harmony` | 同步 A/B 核心至 ArkTS 工程，在 D 盘英文路径构建 OpenHarmony HAP；需安装 DevEco Studio 与 SDK，步骤见 [环境记录](docs/environment.md) |
+| `npm run build:harmony` | 同步 A/B/C 核心至 ArkTS 工程，在 D 盘英文路径构建 OpenHarmony HAP；需安装 DevEco Studio 与 SDK，步骤见 [环境记录](docs/environment.md) |
 
 `doctor` 对 `hdc`、`ohpm` 等工具的检测范围是命令路径，不验证设备连接、SDK 兼容性或鸿蒙构建是否成功。工具尚未配置时，独立算法检查仍可运行，报告中的目标环境验证保持 `not-run`。
 
@@ -134,6 +134,7 @@ A 牵头确定目标系统、应用工程及设备或模拟器，C、D 验证相
 | `config/` | 预测配置覆盖项、批量对照候选及选择约束；默认值集中在核心配置模块 |
 | `docs/target.md` | 项目要求、评分、模板条目和待落实事项 |
 | `docs/reproduction.md` | 本机依赖安装、流水线、演示与 HAP 构建的实测复现记录 |
+| `docs/A-modification-report.md` | A 部分本轮改动、任务对应关系、验证与后续交接 |
 | `docs/` 中的 DOCX/PPTX | 两份原始官方模板；正式作品另存，不覆盖原件 |
 | `docs/sources/` | 要求网页快照、提取数据、模板内容核对及来源索引，不参与程序运行 |
 | `artifacts/` | 本地构建、检查、运行和评测证据，默认不提交 Git |

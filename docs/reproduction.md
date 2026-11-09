@@ -31,6 +31,8 @@ npm run demo
 
 `npm run demo` 会持续运行本地服务；结束演示时在启动它的终端按 Ctrl+C。演示用固定静态页面数据，只验证 A/B/C 的主机侧接入，不代表鸿蒙设备上的数据预取、D 的真实视图复用或性能收益。构建脚本在 D 盘英文目录执行 Hvigor，以避开工程根目录中文路径限制；每次运行产物和日志独立保存在 `artifacts/`，这些本地生成物默认不提交 Git。
 
+在 A/B/C 同步到 ArkTS 工程后再次验证：`npm run pipeline` 147 项测试通过，报告 `artifacts/pipeline/2026-11-09T14-04-55-599Z-98c5b6de/report.json`；`npm run build:harmony` 34 项任务成功，最新 HAP 为 `artifacts/harmony/run-20261109-220554-68678e/entry-default-unsigned.hap`，349,096 字节，SHA-256 `5FF4CA6E884BB3059A467FD18FABA4B2EBABCA285442C98028066ADFBE3C75D4`。修改说明见 [A 部分修改报告](A-modification-report.md)。
+
 ## 后续设备端验证
 
 当前阶段的复现已完成，不依赖模拟器。仍不能把“构建成功”记为“应用在设备上可运行”。本机另有一个未启动的 HarmonyOS 6.0.0（API 20）模拟器；[华为构建目标文档](https://developer.huawei.com/consumer/en/doc/harmonyos-guides-V13/ide-customized-multi-targets-and-products-guides-V13/)将 OpenHarmony HAP 与 HarmonyOS HAP 分别对应各自设备，现有模拟器也低于工程 API 26。若课程最终要求设备验证，再确定目标系统，完成相应的签名、安装、启动与交互录屏。

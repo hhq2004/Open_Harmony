@@ -10,9 +10,9 @@
 | --- | --- | --- |
 | 目标环境 | DevEco Studio、SDK/API、模拟器或设备版本及运行记录 | IDE 26.0.0.865 与 OpenHarmony SDK 26.0.0.38 已安装；`hdc list targets` 为空，见 [环境记录](environment.md) |
 | 行为采集 | `AppVisitCollector`、固定路由目录、开关与删除历史 | 主机侧已实现，`tests/visit-collector.test.mjs` 验证 |
-| 演示应用 | 可点击页面、开关、清除、预测结果及事件显示 | 浏览器演示可运行并展示静态数据预取；`harmony-app/` 已完成 A/B ArkTS 编译并生成未签名 HAP，设备运行待验证 |
+| 演示应用 | 可点击页面、开关、清除、预测结果及事件显示 | 浏览器演示可运行并展示静态数据预取；`harmony-app/` 已完成 A/B/C ArkTS 编译并生成未签名 HAP，设备运行待验证 |
 | B 集成 | 同一匿名会话的 `VisitEvent` 单次传入 `SessionPredictor.acceptDetailed()` | 已实现；冷启动、关闭、清除和非法输入已有测试 |
-| C/D/E 集成 | 任务创建/取消、资源释放、真实测量 | A→B→C 主机侧接入与浏览器演示已完成；D 真实视图及 E 设备测量待平台联调 |
+| C/D/E 集成 | 任务创建/取消、资源释放、真实测量 | A→B→C 主机侧测试及 ArkTS 编译已完成；鸿蒙演示使用固定内存数据与手动空闲信号，D 真实视图及 E 设备测量待平台联调 |
 
 ## 2. 从环境到交付的执行顺序
 
@@ -54,7 +54,7 @@ npm run demo
 
 在浏览器打开 `http://127.0.0.1:4173/`。初始采集关闭；打开后依次点击“详情页 → 首页 → 详情页”，即可观察完成的转移、下一页候选和静态数据复用。浏览器空闲回调触发 C 的任务；点击“清除预测历史”后 B 模型与 C 任务清空；关闭采集后新点击不再进入预测器。界面仅显示页面别名及边界，不显示匿名 ID 或时间戳；应用不向服务端提交事件、不写本地存储。关闭采集保留 B 的内存学习结果，清除按钮才删除。
 
-`src/application/visit-collector.ts` 与 `src/application/visit-integration.ts` 是可复用的 A 逻辑。`demo/` 是浏览器承载层，预取的是固定内存数据，没有网络请求或 D 真实视图；`harmony-app/` 使用平台 `util.generateRandomUUID()` 和 `systemDateTime.getUptime()`，并通过 `scripts/sync-harmony.mjs` 将 A/B 源码与配置纳入 ArkTS 工程。鸿蒙 HAP 已编译，设备生命周期与交互仍需实际运行验证。
+`src/application/visit-collector.ts` 与 `src/application/visit-integration.ts` 是可复用的 A 逻辑。`demo/` 是浏览器承载层，预取的是固定内存数据，没有网络请求或 D 真实视图；`harmony-app/` 使用平台 `util.generateRandomUUID()` 和 `systemDateTime.getUptime()`，并通过 `scripts/sync-harmony.mjs` 将 A/B/C 源码与配置纳入 ArkTS 工程。页面按钮手动送入空闲信号，`DemoPreload.ets` 提供固定内存内容，页面命中后接管并显示该内容。鸿蒙 HAP 已编译，设备生命周期与交互仍需实际运行验证。
 
 ## 4. 接口评审与验收
 
@@ -65,7 +65,7 @@ npm run demo
 | 关闭/恢复 | 关闭时零投递、清游标；恢复不跨越关闭期学习 | 主机测试；设备 trace 待补 |
 | 异常页面/时间 | 拒绝原始 URL 等输入，打断邻接，导航仍可继续 | 主机测试；ArkTS 错误恢复待补 |
 | 删除历史 | B 模型清空，界面事件清空，匿名会话轮换 | 主机测试；设备验证待补 |
-| 预测命中/落空 | C 核对并取消/移交数据；D 释放真实视图 | A→B→C 主机测试与浏览器演示已验证静态数据；真实视图及设备证据待补 |
+| 预测命中/落空 | C 核对并取消/移交数据；D 释放真实视图 | A→B→C 主机测试验证静态数据，浏览器演示可见；ArkTS 编译通过，真实视图及设备证据待补 |
 | 完整验收 | `npm run pipeline`、ArkTS 构建、设备安装运行、E 原始数据 | 主机流水线与 ArkTS 编译已通过；签名、设备运行和 E 实测待补 |
 
 ## 5. 提交目录

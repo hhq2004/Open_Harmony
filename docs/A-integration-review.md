@@ -32,4 +32,4 @@
 
 ## 当前可复现结果
 
-`npm run pipeline` 覆盖 A→B→C 的匿名会话、预取移交、关闭、清除和非法路由；`npm run demo` 可在浏览器中观察“首页 → 详情页 → 首页 → 详情页”的候选与静态数据复用。`npm run build:harmony` 只验证 A/B ArkTS 工程可编译，尚未验证 C/D/E 目标平台适配或设备运行。
+`npm run pipeline` 覆盖 A→B→C 的匿名会话、预取移交、关闭、清除和非法路由；`npm run demo` 可在浏览器中观察“首页 → 详情页 → 首页 → 详情页”的候选与静态数据复用。`npm run build:harmony` 验证 A/B/C ArkTS 工程可编译，预取数据为固定内存内容、空闲由按钮手动触发；尚未验证 C 的目标平台网络/空闲适配、D/E 平台适配或设备运行。

@@ -7,12 +7,17 @@ const output = resolve(root, 'harmony-app/entry/src/main/ets/core');
 const sources = [
   'contracts.ts',
   'application/visit-collector.ts',
+  'application/visit-integration.ts',
   'prediction/validation.ts',
   'prediction/config.ts',
   'prediction/markov.ts',
   'prediction/session.ts',
   'prediction/factory.ts',
   'prediction/index.ts',
+  'preload/types.ts',
+  'preload/scheduler.ts',
+  'preload/controller.ts',
+  'preload/index.ts',
 ];
 
 for (const name of sources) {
@@ -24,4 +29,4 @@ for (const name of sources) {
 }
 const profile = JSON.parse(await readFile(resolve(root, 'config/prediction.json'), 'utf8'));
 await writeFile(resolve(output, 'prediction-profile.ts'), `// Generated from config/prediction.json by scripts/sync-harmony.mjs\nexport const predictionProfile = ${JSON.stringify(profile, null, 2)};\n`);
-console.log('Synchronized A/B logic and prediction profile for the ArkTS build.');
+console.log('Synchronized A/B/C logic and prediction profile for the ArkTS build.');
