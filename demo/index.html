@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P07 页面采集、预测与数据预取演示</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <p class="eyebrow">P07 · A/B/C 集成演示</p>
+      <h1>页面访问路径</h1>
+      <p class="intro">点击页面，观察已脱敏事件进入预测器、候选数据在浏览器空闲时准备，以及下一次访问是否复用。此演示使用固定本地数据，不代表鸿蒙设备预渲染。</p>
+    </header>
+    <section class="controls" aria-label="采集设置">
+      <label class="toggle"><input id="collection-toggle" type="checkbox"> <span>启用本次会话采集</span></label>
+      <button id="clear-history" type="button" class="secondary">清除预测历史</button>
+      <p id="privacy-note">默认关闭。只使用固定页面别名和本次运行生成的随机会话标识；不读取网址、账户或设备标识，不上传或持久保存。</p>
+    </section>
+    <section class="grid">
+      <div class="panel">
+        <h2>演示页面</h2>
+        <nav id="page-nav" aria-label="演示页面"></nav>
+        <article class="page-card">
+          <p class="eyebrow">当前页面</p>
+          <h3 id="page-title"></h3>
+          <p id="page-description"></p>
+        </article>
+      </div>
+      <div class="panel">
+        <h2>下一页预测</h2>
+        <p id="prediction-status" class="status">采集未启用</p>
+        <ol id="predictions" aria-live="polite"></ol>
+        <p class="footnote">分数是历史条件频率，不保证本次访问命中。</p>
+        <p id="preload-status" class="footnote" aria-live="polite">数据预取未启用</p>
+      </div>
+    </section>
+    <section class="panel trace">
+      <div class="trace-heading"><h2>本次界面事件</h2><span>仅内存展示最近 20 条</span></div>
+      <ol id="visit-trace" aria-live="polite"></ol>
+    </section>
+  </main>
+</body>
+</html>
