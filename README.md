@@ -73,7 +73,7 @@ A 组织应用与模块集成，E 维护自动检查并组织最终验收。每�
 
 ## 模块接入规则
 
-共享类型见 [src/contracts.ts](src/contracts.ts)。这些是待评审的逻辑契约，并非已经实现的鸿蒙系统 API。目前 A 的主机侧采集器、B 的预测模型及会话接入器、C 的调度器、D 的预渲染资源管理器和 E 的测量模块有实际实现；仍需在应用中完成 C/D/E 接入与目标设备验证。
+共享类型见 [src/contracts.ts](src/contracts.ts)。这些是待评审的逻辑契约，并非已经实现的鸿蒙系统 API。目前 A 的采集器、B 的预测模型及会话接入器、C 的调度器、D 的预渲染资源管理器和 E 的测量模块有实际实现；A/B/C 已以固定静态数据接入演示应用，真实平台数据、D/E 应用接入与目标设备验证仍待完成。
 
 1. 先在任务或 PR 中写清模块入口、输入输出、依赖、异常行为和验收方法，再按独立分支开发。
 2. 主机侧 TypeScript 实现放在 `src/`，对应测试放在 `tests/<module>.test.mjs`。当前 pipeline 从 `tests/` 顶层发现测试文件；新建嵌套测试目录前，应先同步修改测试发现规则。
@@ -85,7 +85,7 @@ A 可通过 `SessionPredictor.accept(VisitEvent)` 接入已脱敏事件，由 B 
 
 主机侧 A 采集位于 `src/application/visit-collector.ts`：仅接受固定路由别名，匿名会话在启用、恢复和清除时轮换，关闭期间不投递事件。`src/application/visit-integration.ts` 将 B 的一次决策接到 C，处理前台开始、上一轮命中/落空、会话结束、关闭与清除。`demo/` 用固定本地数据展示浏览器空闲后的预取与复用；没有服务端事件接收或持久化，也没有 D 的真实视图。接口交接见 [A 集成评审记录](docs/A-integration-review.md)。
 
-ArkTS 工程位于 `harmony-app/`，`scripts/sync-harmony.mjs` 从 `src/` 和 `config/prediction.json` 生成 A/B 共享逻辑及配置；`scripts/build-harmony.ps1` 复制工程到 D 盘英文路径后编译，日志与未签名 HAP 进入 `artifacts/harmony/`。实际设备安装启动、自动签名和应用性能测量还需目标设备或模拟器。具体环境、构建证据与剩余步骤见 [环境记录](docs/environment.md)。
+ArkTS 工程位于 `harmony-app/`，`scripts/sync-harmony.mjs` 从 `src/` 和 `config/prediction.json` 生成 A/B/C 共享逻辑及配置；`scripts/build-harmony.ps1` 复制工程到 D 盘英文路径后编译，日志与未签名 HAP 进入 `artifacts/harmony/`。实际设备安装启动、自动签名和应用性能测量还需匹配的目标设备。具体环境、构建证据与剩余步骤见 [环境记录](docs/environment.md)。
 
 需要区分关闭、迟到事件、超时或淘汰边界时，使用 `acceptDetailed()` 获取 `SessionDecision`；其候选与 `accept()` 来自同一执行路径。不要为同一次访问先后调用两者，以免重复学习。共享 `src/contracts.ts` 接口未改动，B 的跨模块交接步骤见模块说明末尾。
 
@@ -135,6 +135,7 @@ A 牵头确定目标系统、应用工程及设备或模拟器，C、D 验证相
 | `docs/target.md` | 项目要求、评分、模板条目和待落实事项 |
 | `docs/reproduction.md` | 本机依赖安装、流水线、演示与 HAP 构建的实测复现记录 |
 | `docs/A-modification-report.md` | A 部分本轮改动、任务对应关系、验证与后续交接 |
+| `docs/team-roles-explained.md` | A–E 五人分工、模块衔接、当前进度和各自验收边界 |
 | `docs/` 中的 DOCX/PPTX | 两份原始官方模板；正式作品另存，不覆盖原件 |
 | `docs/sources/` | 要求网页快照、提取数据、模板内容核对及来源索引，不参与程序运行 |
 | `artifacts/` | 本地构建、检查、运行和评测证据，默认不提交 Git |

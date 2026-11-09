@@ -16,6 +16,8 @@ submission/
 
 源码和测试以**仓库根目录**的 `src/`、`harmony-app/`、`demo/`、`tests/`、`config/`、`scripts/` 为准，不在这里复制一份过期源码。现有可引用材料：[`../docs/A-workflow.md`](../docs/A-workflow.md) A 流程、[`../docs/A-integration-review.md`](../docs/A-integration-review.md) 接口交接、[`../docs/A-modification-report.md`](../docs/A-modification-report.md) 修改报告、[`../docs/environment.md`](../docs/environment.md) 环境、[`../docs/reproduction.md`](../docs/reproduction.md) 本机复现记录、[`../docs/prediction.md`](../docs/prediction.md) B 模块说明、`../docs/` 下两份官方原始模板。构建日志与未签名 HAP 在本地 `artifacts/harmony/`，默认不提交 Git；最终证据应在核实后复制或归档。
 
+组内分工与各模块当前状态的通俗说明见 [`../docs/team-roles-explained.md`](../docs/team-roles-explained.md)。
+
 最终提交前逐项核对：
 
 - [ ] 仓库有一个可构建、可安装并在目标设备/模拟器运行的 OpenHarmony 应用，写明系统与 SDK/API 版本。
