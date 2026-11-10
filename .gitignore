@@ -1,5 +1,10 @@
 node_modules/
 dist/
+**/build/
+**/.hvigor/
+**/oh_modules/
+**/local.properties
+harmony-app/entry/src/main/ets/core/
 artifacts/
 temp_*
 .env

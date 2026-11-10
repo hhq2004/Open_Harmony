@@ -69,7 +69,7 @@ export class DataPreloadScheduler<T> implements PreloadScheduler {
     private readonly preparer?: DataViewPreparer<T>,
   ) {
     for (const key of Object.keys(options)) {
-      if (!Object.hasOwn(DEFAULT_SCHEDULER_OPTIONS, key)) throw new TypeError('Unknown scheduler option.');
+      if (!Object.prototype.hasOwnProperty.call(DEFAULT_SCHEDULER_OPTIONS, key)) throw new TypeError('Unknown scheduler option.');
     }
     this.options = Object.freeze({ ...DEFAULT_SCHEDULER_OPTIONS, ...options });
     for (const value of Object.values(this.options)) {
