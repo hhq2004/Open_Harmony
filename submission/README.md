@@ -18,6 +18,8 @@ submission/
 
 组内分工与各模块当前状态的通俗说明见 [`../docs/team-roles-explained.md`](../docs/team-roles-explained.md)。
 
+仓库合并状态、五项任务完成度和后续集成门槛见 [`../docs/merge-integration-status-2026-11-10.md`](../docs/merge-integration-status-2026-11-10.md)。
+
 最终提交前逐项核对：
 
 - [ ] 仓库有一个可构建、可安装并在目标设备/模拟器运行的 OpenHarmony 应用，写明系统与 SDK/API 版本。
