@@ -15,7 +15,7 @@
 | GitHub Actions | 已配置 Windows/Ubuntu 检查；具体运行结果以仓库 Actions 页面为准 |
 | A 采集与集成演示 | 已实现固定页面别名、默认关闭的匿名会话采集、清除与生命周期边界；浏览器与 OpenHarmony API 26 工程均已接入 B/C 静态数据预取并完成构建；见 [A 流程](docs/A-workflow.md) |
 | 调度、预渲染和测量 | C/D/E 主机侧模块与测试已合入；应用中的端到端接入和设备验证待完成，见 [预取](docs/preload.md)、[预渲染](docs/preparation.md) 与 [测量](docs/measurement.md) |
-| OpenHarmony 构建和设备评测 | DevEco Studio 26.0.0.865 与 OpenHarmony SDK 26.0.0.38 已配置并完成 ArkTS 编译；HAP 尚未签名，未检测到设备/模拟器，设备运行与性能评测待完成 |
+| OpenHarmony 构建和设备评测 | DevEco Studio 26.0.0.865 与 OpenHarmony SDK 26.0.0.38 已配置；A/B/C HAP 已编译但未签名。2026-11-11 用户确认 DevEco 预览器中的页面演示可点击；尚无匹配 OpenHarmony API 26 的设备安装、运行和性能评测证据 |
 
 单独运行本地 pipeline 只检查 TypeScript 核心逻辑；ArkTS 另通过 `npm run build:harmony` 验证。两种构建都不能证明预渲染功能或设备性能达标，端到端联调需随平台实现逐步接入。
 
@@ -57,19 +57,19 @@ pipeline 按以下顺序执行：
 
 预测配置入口为 [config/prediction.json](config/prediction.json)，空的 `model`、`session` 对象继承 `src/prediction/config.ts` 的统一默认值。Node 评测命令默认读取该文件；应用由 A 加载同一配置，再交给 `createPredictionEngine(pageCatalog, profile)`，核心代码不依赖 Node 文件接口。报告的 `profile` 保存解析后的配置，`effectiveConfig` 另明确记录数据集会话策略与 `--top-k` 覆盖后的生效值。
 
-## 五人模块分工
+## 五人已完成的模块工作
 
-以下姓名依据组内分工表，实际代码范围依据已合入提交及当前文件。跨模块测试和接入由相关成员共同负责，Git 作者名只作为贡献证据，不代替组内确认。
+以下姓名依据组内分工表；完成范围以已合入代码和现有证据为准。跨模块工作可能由多人共同完成，Git 作者名不代替团队确认。
 
-| 成员与分工 | 已合入的实际工作 | 本轮证据 | 仍需完成的分工要求 |
-| --- | --- | --- | --- |
-| **王子鸣 · A 应用与集成** | `src/application/visit-collector.ts`、`visit-integration.ts`：固定页面别名、匿名会话、默认关闭/清除和 A→B→C 接入；`demo/` 浏览器交互；`harmony-app/` 的 A/B/C ArkTS 页面；`scripts/sync-harmony.mjs`、`build-harmony.ps1` 与 A 测试、流程文档。合并于 PR #5 | 浏览器可展示路径、预测与固定内存数据复用；主机测试及未签名 HAP 构建通过 | 目标环境安装运行；真实页面与数据源、系统空闲/内存信号；D/E 应用接入；接口评审确认和设备证据 |
-| **胡涵清 · B 路径预测** | `src/prediction/`：有界一阶转移模型、会话预测、统一配置和输入校验；`benchmarks/prediction.mjs`、`events.mjs`、`sweep.mjs` 及测试：冷启动、异常输入、离线回放和参数对照。PR #1 已合并；早期共享契约与主机流水线也由其建立 | 主机预测和回放进入 pipeline，B 核心随 A 工程通过 ArkTS 编译 | 用真实脱敏路径复核参数和效果；目标环境行为验证 |
-| **吕言虎 · C 调度与数据预取** | `src/preload/`：优先级、任务状态、取消/超时/失败、命中移交；`adapters/node-http-fetcher.mjs`、`benchmarks/preload.mjs` 和 C、C/D 交接测试。PR #3 已合并；A 在 ArkTS 工程同步 C 核心并修改一处兼容写法 | 主机 HTTP 场景和任务生命周期进入 pipeline；鸿蒙演示目前为手动空闲及固定内存数据 | 目标平台真实空闲/前台忙/内存压力信号、可取消网络请求和设备任务记录 |
-| **钟广申 · D 预渲染与资源管理** | `src/preparation/`：`ResourceViewPreparer`、资源身份复用、落空/TTL/容量/内存压力释放与取消后晚到清理；`tests/preparation.test.mjs`、`docs/DELIVERY_D.md`。C 的提交补充了 C/D 主机交接测试 | 主机对象和释放回调测试通过；C/D 资源所有权有联合测试 | ArkUI 真实视图预构建、命中复用和设备资源回收，不能以对象测试替代 |
-| **王淞 · E 流水线与评测** | `src/measurement/`：记录校验、JSONL `MeasurementSink`、聚合和报告；`benchmarks/measurement.mjs`、测量测试、CI 摘要与验收文档。PR #4 已合并；早期流水线基础由 B 建立，C/D 阶段由对应成员扩展 | 统一指标与合成基线/优化对照进入 Windows/Ubuntu 主机流水线 | A/C/D 设备测量接入、真实原始数据、同环境基线对照和最终验收证据 |
+| 成员与分工 | 已完成并合入的工作 | 已核对的证据 |
+| --- | --- | --- |
+| **王子鸣 · A 应用与集成** | 实现了 `src/application/` 的固定页面别名、匿名会话、采集开关与清除，以及 A→B→C 调用顺序；完成了 `demo/` 浏览器演示、`harmony-app/` 中 A/B/C 单页 ArkTS 演示、同步和英文路径构建脚本、A 的测试与流程文档。相关代码经 PR #5 合入 | 主机 A 集成测试通过；浏览器演示可复现；ArkTS HAP 编译成功。用户于 2026-11-11 确认 DevEco 预览器中按钮可切换演示内容；这不是设备安装记录 |
+| **胡涵清 · B 路径预测** | 实现了 `src/prediction/` 的有界一阶转移模型、会话决策、配置与输入校验，以及离线回放和参数对照脚本；建立了早期共享契约与主机流水线。PR #1 已合入 | 冷启动、异常输入、会话与参数场景进入主机测试；B 核心随 A/B/C 工程通过 ArkTS 编译 |
+| **吕言虎 · C 调度与数据预取** | 实现了 `src/preload/` 的任务调度、优先级、状态、取消/超时/失败和命中移交；完成了 Node HTTP 适配、预取评测及 C/D 主机交接测试。PR #3 已合入；A 后续同步了 C 核心并处理 ArkTS 兼容写法 | 主机 HTTP 请求及取消场景、任务生命周期测试通过；ArkTS 演示中的 C 使用手动空闲和固定内存数据 |
+| **钟广申 · D 预渲染与资源管理** | 实现了 `src/preparation/` 的 `ResourceViewPreparer`、主机对象身份复用、落空/过期/容量/内存压力释放及取消后晚到清理；完成了测试与交付说明。相关提交已进入主分支 | 主机对象与释放回调测试、C/D 资源所有权交接测试通过；尚无 ArkUI 真实视图证据 |
+| **王淞 · E 流水线与评测** | 实现了 `src/measurement/` 的记录校验、JSONL `MeasurementSink`、指标聚合与报告；完成了合成对照、相关测试、CI 摘要和验收说明。PR #4 已合入 | 统一指标与合成基线/优化对照进入主机流水线；现有结果不属于设备实测 |
 
-本次（2026-11-11）复核：合并后的 `main` 基线 `22fd55a`，主机流水线 147 项测试通过，A/B/C HAP 编译成功但未签名。浏览器演示和合成测量只证明主机链路；完整设备闭环尚未验证。逐项要求、剩余问题及复现命令见 [版本复核报告](docs/version-review-2026-11-11.md)，更通俗的分工解释见 [五人分工说明](docs/team-roles-explained.md)。
+本次核对使用已合并的 `main` 基线 `22fd55a` 和 2026-11-11 的本机记录：主机流水线 147 项测试通过；A/B/C HAP 编译成功但未签名。已完成内容、剩余缺口和检查发现见 [版本复核报告](docs/version-review-2026-11-11.md)；五人分工说明见 [五人分工说明](docs/team-roles-explained.md)。
 
 ## 模块接入规则
 
