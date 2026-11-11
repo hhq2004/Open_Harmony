@@ -37,7 +37,7 @@
 
 ## 本次执行的流程与结果
 
-1. 更新本地 `main` 至已缓存的远端合并提交 `22fd55a`，在其上建立独立审计分支。2026-11-11 Git 远端连接受本机 `127.0.0.1:7897` 代理不可用影响，**没有取得更新的远端提交**；报告以 `22fd55a` 为确定基线。
+1. 更新本地 `main` 至合并提交 `22fd55a`，在其上建立独立审计分支。期间本机代理曾短暂阻止远端连接；恢复后重新执行 `git fetch --prune origin`，确认最新 `origin/main` 仍为 `22fd55a`。
 2. `npm run pipeline`：`passed`，147 项测试通过、0 失败；包括类型检查、干净编译、主机单元/集成测试、HTTP 预取、合成测量、路径/事件评测及参数对照。证据：`artifacts/pipeline/2026-11-11T07-25-00-138Z-96a6d880/report.json`，本机生成、不入 Git。流水线的 `targetValidation` 仍为 `not-run`。
 3. `npm run build:harmony`：Hvigor 34 项任务成功，生成 1 个未签名 HAP；日志与包位于 `artifacts/harmony/run-20261111-152638-2afb7f/`。这证明 A/B/C ArkTS 编译与打包；不证明安装启动。编译输出提示跳过签名。
 4. `npm run demo` 成功启动，首页、`app.js`、A 集成编译产物和预测配置均返回 HTTP 200；说明本地演示入口与关键资源可加载。此前的交互复现见 [本机复现记录](reproduction.md)，本轮 HTTP 检查不代替完整人工交互回归。
