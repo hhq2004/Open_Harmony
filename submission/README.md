@@ -20,6 +20,8 @@ submission/
 
 仓库合并状态、五项任务完成度和后续集成门槛见 [`../docs/merge-integration-status-2026-11-10.md`](../docs/merge-integration-status-2026-11-10.md)。
 
+合并后的实际贡献、网站要求对照和 2026-11-11 复验结果见 [`../docs/version-review-2026-11-11.md`](../docs/version-review-2026-11-11.md)。
+
 最终提交前逐项核对：
 
 - [ ] 仓库有一个可构建、可安装并在目标设备/模拟器运行的 OpenHarmony 应用，写明系统与 SDK/API 版本。
