@@ -18,6 +18,14 @@ const sources = [
   'preload/scheduler.ts',
   'preload/controller.ts',
   'preload/index.ts',
+  'preparation/view-preparer.ts',
+  'preparation/index.ts',
+  'measurement/types.ts',
+  'measurement/validation.ts',
+  'measurement/sink.ts',
+  'measurement/aggregate.ts',
+  'measurement/index.ts',
+  'measurement/report.ts',
 ];
 
 for (const name of sources) {
@@ -29,4 +37,4 @@ for (const name of sources) {
 }
 const profile = JSON.parse(await readFile(resolve(root, 'config/prediction.json'), 'utf8'));
 await writeFile(resolve(output, 'prediction-profile.ts'), `// Generated from config/prediction.json by scripts/sync-harmony.mjs\nexport const predictionProfile = ${JSON.stringify(profile, null, 2)};\n`);
-console.log('Synchronized A/B/C logic and prediction profile for the ArkTS build.');
+console.log('Synchronized A/B/C/D/E logic and prediction profile for the ArkTS build.');
