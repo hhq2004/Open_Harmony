@@ -1,34 +1,20 @@
-# P07 课程最终提交目录与清单
+# P07 课程提交材料
 
-这是最后交付材料的目录规划。项目实践页要求个人仓库地址、项目简介、基于官方模板的详细设计文档，以及视频或 PPT；其他工程证据用于复现和说明。当前仓库尚未完成目标设备闭环，本目录不是“已可提交”的声明。
+本次打包对应 `codex/de-app-integration` 分支，基于提交 `b95765f` 加入应用可视化页面与说明修改。A/B/C/D/E 已接入 OpenHarmony API 26 的 ArkTS 静态数据演示；主机侧 pipeline 通过，最新 ArkTS 工程已生成未签名 HAP。DevEco 预览器的一键演示显示访问 4 次、准备模型复用 1 次、资源释放 1 次。D 在应用中准备文本渲染模型，E 记录内存中的合成测量；尚无新版设备安装运行、ArkUI 原生视图预构建或设备性能对照证据。
 
-```text
-submission/
-├── README.md                     本清单、版本和材料索引
-├── project-summary.md            项目简介当前实现稿（联调实测后更新）
-├── design/                       基于官方 DOCX 模板另存的正式设计文档（待完成）
-├── presentation/                 视频或基于官方 PPTX 模板的正式演示稿，二选一（待完成）
-└── evidence/
-    ├── environment/              IDE、SDK、设备/模拟器版本和构建命令（待补）
-    ├── integration/              A–E 接口评审、联调与异常场景记录（待补）
-    └── measurements/             E 的真实原始数据、指标脚本和结果（待补）
-```
+## 网页上传文件
 
-源码和测试以**仓库根目录**的 `src/`、`harmony-app/`、`demo/`、`tests/`、`config/`、`scripts/` 为准，不在这里复制一份过期源码。现有可引用材料：[`../docs/A-workflow.md`](../docs/A-workflow.md) A 流程、[`../docs/A-integration-review.md`](../docs/A-integration-review.md) 接口交接、[`../docs/A-modification-report.md`](../docs/A-modification-report.md) 修改报告、[`../docs/environment.md`](../docs/environment.md) 环境、[`../docs/reproduction.md`](../docs/reproduction.md) 本机复现记录、[`../docs/prediction.md`](../docs/prediction.md) B 模块说明、`../docs/` 下两份官方原始模板。构建日志与未签名 HAP 在本地 `artifacts/harmony/`，默认不提交 Git；最终证据应在核实后复制或归档。
+| 网页栏目 | 文件 | 说明 |
+| --- | --- | --- |
+| 项目文档 | `../../P07提交材料/P07-开发设计文档-更新版.docx` | 依据官方 DOCX 模板，已更新 D/E 接入与验证边界 |
+| PPT | `../../P07提交材料/P07-答辩汇报-更新版.pptx` | 依据官方 PPTX 模板，共十页 |
+| 项目打包文件 | `../../P07-Open_Harmony-visual-20261117.zip` | 当前工作区的已跟踪项目源码、测试、配置和说明；排除本地构建缓存及三个未跟踪中文文档 |
+| 项目视频 | 单独录制与上传 | 展示 DevEco 预览器的一键预测命中流程；视频不放入源码压缩包 |
 
-组内分工与各模块当前状态的通俗说明见 [`../docs/team-roles-explained.md`](../docs/team-roles-explained.md)。
+上述文件位于仓库的上一级 `课程作业` 目录；正式文档和 PPT 位于其中的 `P07提交材料` 目录。网页中的个人仓库地址与项目简介需在对应字段填写，简介稿见 [project-summary.md](project-summary.md)。
 
-仓库合并状态、五项任务完成度和后续集成门槛见 [`../docs/merge-integration-status-2026-11-10.md`](../docs/merge-integration-status-2026-11-10.md)。
+## 复现与证据
 
-合并后的实际贡献、网站要求对照和 2026-11-11 复验结果见 [`../docs/version-review-2026-11-11.md`](../docs/version-review-2026-11-11.md)。
+在仓库根目录执行 `npm ci`、`npm run pipeline`、`npm run build:harmony`。2026-11-17 本机 pipeline 全阶段通过；最新 ArkTS 构建完成 34 项 Hvigor 任务，未签名 HAP 和日志位于被 Git 忽略的 `artifacts/harmony/run-20261117-201127-50ceae/`。打包文件不包含 `artifacts/`、`node_modules/`、`dist/` 或其他本机构建缓存。
 
-最终提交前逐项核对：
-
-- [ ] 仓库有一个可构建、可安装并在目标设备/模拟器运行的 OpenHarmony 应用，写明系统与 SDK/API 版本。
-- [ ] A 的页面事件脱敏、开关、会话接入和删除历史在设备上验证。
-- [x] A/B/C 主机侧交接已验证，浏览器静态数据预取可复现。
-- [ ] C/D 的目标平台预取、真实视图复用、预测落空取消和晚到资源释放完成设备联调。
-- [ ] E 保存真实路径、基线与优化对照、点击可见时间和内存/资源开销原始证据。
-- [ ] 基于原始 DOCX 模板完成设计文档，标明个人贡献和 `文件:行号#符号名` 证据。
-- [ ] 准备视频或 PPT，并与实际设备演示及测量一致。
-- [ ] 填写个人仓库地址；核对教师关于截止时间和提交方式的最新通知。
+应用演示与平台限制见 [harmony-app/README.md](../harmony-app/README.md)；A 至 E 模块的源代码、主机测试和配置分别位于 `src/`、`tests/`、`config/`。如课程要求设备性能收益，还需补充匹配的设备、签名安装、真实请求、原生视图准备及同条件原始测量。
