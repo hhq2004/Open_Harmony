@@ -14,8 +14,8 @@
 | 自动化测试 | 覆盖预测、窗口淘汰、会话隔离、开关/清除、离线评测，以及视图复用、取消竞态和资源回收；新增模块需补充自己的测试 |
 | GitHub Actions | 已配置 Windows/Ubuntu 检查；具体运行结果以仓库 Actions 页面为准 |
 | A 采集与集成演示 | 已实现固定页面别名、默认关闭的匿名会话采集、清除与生命周期边界；浏览器与 OpenHarmony API 26 工程均已接入 B/C 静态数据预取并完成构建；见 [A 流程](docs/A-workflow.md) |
-| 调度、预渲染和测量 | C/D/E 主机侧模块与测试已合入；应用中的端到端接入和设备验证待完成，见 [预取](docs/preload.md)、[预渲染](docs/preparation.md) 与 [测量](docs/measurement.md) |
-| OpenHarmony 构建和设备评测 | DevEco Studio 26.0.0.865 与 OpenHarmony SDK 26.0.0.38 已配置；A/B/C HAP 已编译但未签名。2026-11-11 用户确认 DevEco 预览器中的页面演示可点击；尚无匹配 OpenHarmony API 26 的设备安装、运行和性能评测证据 |
+| 调度、预渲染和测量 | C/D/E 主机侧模块与测试已合入；ArkTS 演示现在调用 D 的资源准备器和 E 的内存测量器，使用固定文本模型及合成口径。真实 ArkUI 视图、持久原始记录和设备评测待完成，见 [应用说明](harmony-app/README.md) |
+| OpenHarmony 构建和设备评测 | DevEco Studio 26.0.0.865 与 OpenHarmony SDK 26.0.0.38 已配置；A/B/C/D/E 演示 HAP 已编译但未签名。2026-11-11 用户确认 DevEco 预览器中的旧版页面演示可点击；新版尚无设备安装、运行和性能评测证据 |
 
 单独运行本地 pipeline 只检查 TypeScript 核心逻辑；ArkTS 另通过 `npm run build:harmony` 验证。两种构建都不能证明预渲染功能或设备性能达标，端到端联调需随平台实现逐步接入。
 
@@ -51,7 +51,7 @@ pipeline 按以下顺序执行：
 | `npm run sweep:prediction` | 先编译，用验证段比较配置，仅对选中配置执行最终测试 |
 | `npm run pipeline` | 执行完整的主机侧检查并保存报告 |
 | `npm run demo` | 编译并启动 A/B/C 本地浏览器演示，打开 `http://127.0.0.1:4173/` |
-| `npm run build:harmony` | 同步 A/B/C 核心至 ArkTS 工程，在 D 盘英文路径构建 OpenHarmony HAP；需安装 DevEco Studio 与 SDK，步骤见 [环境记录](docs/environment.md) |
+| `npm run build:harmony` | 同步 A/B/C/D/E 核心至 ArkTS 工程，在 D 盘英文路径构建 OpenHarmony HAP；需安装 DevEco Studio 与 SDK，步骤见 [应用说明](harmony-app/README.md) |
 
 `doctor` 对 `hdc`、`ohpm` 等工具的检测范围是命令路径，不验证设备连接、SDK 兼容性或鸿蒙构建是否成功。工具尚未配置时，独立算法检查仍可运行，报告中的目标环境验证保持 `not-run`。
 
@@ -73,7 +73,7 @@ pipeline 按以下顺序执行：
 
 ## 模块接入规则
 
-共享类型见 [src/contracts.ts](src/contracts.ts)。这些是待评审的逻辑契约，并非已经实现的鸿蒙系统 API。目前 A 的采集器、B 的预测模型及会话接入器、C 的调度器、D 的预渲染资源管理器和 E 的测量模块有实际实现；A/B/C 已以固定静态数据接入演示应用，真实平台数据、D/E 应用接入与目标设备验证仍待完成。
+共享类型见 [src/contracts.ts](src/contracts.ts)。这些是待评审的逻辑契约，并非已经实现的鸿蒙系统 API。目前 A/B/C/D/E 已在 ArkTS 演示中调用：D 准备文本渲染模型并将资源交给页面，E 记录标为 `synthetic` 的内存 JSONL。真实平台数据、ArkUI 原生视图准备、真实页面可见埋点和目标设备验证仍待完成。
 
 1. 先在任务或 PR 中写清模块入口、输入输出、依赖、异常行为和验收方法，再按独立分支开发。
 2. 主机侧 TypeScript 实现放在 `src/`，对应测试放在 `tests/<module>.test.mjs`。当前 pipeline 从 `tests/` 顶层发现测试文件；新建嵌套测试目录前，应先同步修改测试发现规则。
@@ -85,7 +85,7 @@ A 当前通过 `SessionPredictor.acceptDetailed(VisitEvent)` 接入已脱敏事�
 
 主机侧 A 采集位于 `src/application/visit-collector.ts`：仅接受固定路由别名，匿名会话在启用、恢复和清除时轮换，关闭期间不投递事件。`src/application/visit-integration.ts` 将 B 的一次决策接到 C，处理前台开始、上一轮命中/落空、会话结束、关闭与清除。`demo/` 用固定本地数据展示浏览器空闲后的预取与复用；没有服务端事件接收或持久化，也没有 D 的真实视图。接口交接见 [A 集成评审记录](docs/A-integration-review.md)。
 
-ArkTS 工程位于 `harmony-app/`，`scripts/sync-harmony.mjs` 从 `src/` 和 `config/prediction.json` 生成 A/B/C 共享逻辑及配置；`scripts/build-harmony.ps1` 复制工程到 D 盘英文路径后编译，日志与未签名 HAP 进入 `artifacts/harmony/`。实际设备安装启动、自动签名和应用性能测量还需匹配的目标设备。具体环境、构建证据与剩余步骤见 [环境记录](docs/environment.md)。
+ArkTS 工程位于 `harmony-app/`，`scripts/sync-harmony.mjs` 从 `src/` 和 `config/prediction.json` 生成 A/B/C/D/E 共享逻辑及配置；`scripts/build-harmony.ps1` 复制工程到 D 盘英文路径后编译，日志与未签名 HAP 进入 `artifacts/harmony/`。实际设备安装启动、自动签名和应用性能测量还需匹配的目标设备。具体环境、构建证据与剩余步骤见 [应用说明](harmony-app/README.md)。
 
 需要区分关闭、迟到事件、超时或淘汰边界时，使用 `acceptDetailed()` 获取 `SessionDecision`；其候选与 `accept()` 来自同一执行路径。不要为同一次访问先后调用两者，以免重复学习。共享 `src/contracts.ts` 接口未改动，B 的跨模块交接步骤见模块说明末尾。
 
